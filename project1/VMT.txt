@@ -1,0 +1,43 @@
+class
+	{
+	Main(inputFile)
+		{
+		parser = Parser(inputFile)
+
+		outputFile = inputFile.BeforeLast(".") $ ".asm"
+		out = File(outputFile, "w")
+		cw = CodeWriter(out)
+
+		fileName = inputFile.AfterLast("/")
+		if fileName is inputFile
+			fileName = inputFile.AfterLast("\\")
+		fileName = fileName.BeforeLast(".")
+
+		cw.SetFileName(fileName)
+
+		while true
+			{
+			type = parser.CommandType()
+
+			if type is Parser.C_ARITHMETIC
+				{
+				cw.WriteArithmetic(parser.Arg1())
+				}
+			else if type is Parser.C_PUSH or type is Parser.C_POP
+				{
+				cw.WritePushPop(type, parser.Arg1(), parser.Arg2())
+				}
+			else
+				{
+				throw "Unsupported command: " $ parser.CurrentInstruction()
+				}
+
+			if parser.HasMoreCommands()
+				parser.Advance()
+			else
+				break
+			}
+
+		cw.Close()
+		}
+	}
