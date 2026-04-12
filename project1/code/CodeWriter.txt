@@ -16,23 +16,71 @@ class
 		.currentLine++
 		}
 
-	WriteArithmetic(operation)
+			WriteArithmetic(operation)
 		{
 		.WriteLine("// " + operation)
 		op = operation.Lower()
+
 		if #("add", "sub", "and", "or").Member?(op)
 			{
 			.WriteLine("@SP")
 			.WriteLine("AM=M-1")
 			.WriteLine("D=M")
 			.WriteLine("A=A-1")
-			if op == "add" {.WriteLine("M=D+M")}
-			else if op == "sub" {.WriteLine("M=M-D")}
-			else if op == "and" {.WriteLine("M=D&M")}
-			else if op == "or" {.WriteLine("M=D|M")}
+
+			if op == "add"
+				.WriteLine("M=D+M")
+			else if op == "sub"
+				.WriteLine("M=M-D")
+			else if op == "and"
+				.WriteLine("M=D&M")
+			else if op == "or"
+				.WriteLine("M=D|M")
 			}
-		// ... (???? ??????? ?? EQ, LT, GT ???? ?-Java)
-		}
+		else if #("neg", "not").Member?(op)
+			{
+			.WriteLine("@SP")
+			.WriteLine("A=M-1")
+
+			if op == "neg"
+				.WriteLine("M=-M")
+			else if op == "not"
+				.WriteLine("M=!M")
+			}
+		else if #("eq", "lt", "gt").Member?(op)
+			{
+			trueLabel = "BOOL_TRUE" $ .labelNumber
+			endLabel = "BOOL_END" $ .labelNumber
+			.labelNumber++
+
+			.WriteLine("@SP")
+			.WriteLine("AM=M-1")
+			.WriteLine("D=M")
+			.WriteLine("A=A-1")
+			.WriteLine("D=M-D")
+
+			.WriteLine("@" $ trueLabel)
+			if op == "eq"
+				.WriteLine("D;JEQ")
+			else if op == "lt"
+				.WriteLine("D;JLT")
+			else if op == "gt"
+				.WriteLine("D;JGT")
+
+			.WriteLine("@SP")
+			.WriteLine("A=M-1")
+			.WriteLine("M=0")
+			.WriteLine("@" $ endLabel)
+			.WriteLine("0;JMP")
+
+			.WriteLine("(" $ trueLabel $ ")")
+			.WriteLine("@SP")
+			.WriteLine("A=M-1")
+			.WriteLine("M=-1")
+
+			.WriteLine("(" $ endLabel $ ")")
+			}
+		
 
 	WritePushPop(command, segment, index)
 		{
