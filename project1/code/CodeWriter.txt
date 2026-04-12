@@ -1,0 +1,52 @@
+class
+{
+	New(output_file)
+		{
+		.writeOut = output_file
+		.currentLine = 0
+		.labelNumber = 0
+		}
+
+	SetFileName(filename)
+		{ .filename = filename }
+
+	WriteLine(line)
+		{
+		.writeOut.Write(line + "\n")
+		.currentLine++
+		}
+
+	WriteArithmetic(operation)
+		{
+		.WriteLine("// " + operation)
+		op = operation.Lower()
+		if #("add", "sub", "and", "or").Member?(op)
+			{
+			.WriteLine("@SP")
+			.WriteLine("AM=M-1")
+			.WriteLine("D=M")
+			.WriteLine("A=A-1")
+			if op == "add" {.WriteLine("M=D+M")}
+			else if op == "sub" {.WriteLine("M=M-D")}
+			else if op == "and" {.WriteLine("M=D&M")}
+			else if op == "or" {.WriteLine("M=D|M")}
+			}
+		// ... (???? ??????? ?? EQ, LT, GT ???? ?-Java)
+		}
+
+	WritePushPop(command, segment, index)
+		{
+		.WriteLine("// " + command + " " + segment + " " + index.Display())
+		// ??? ???? ??????? ?? ?-Stack ??? ????? ?-Java
+		// ?-Suneido ????? ?- .GetLabel(segment)
+		}
+
+	GetLabel(segment)
+		{
+		labels = #(local: "@LCL", argument: "@ARG", this: "@THIS", that: "@THAT", temp: "@R5")
+		return labels[segment.Lower()]
+		}
+
+	Close()
+		{ .writeOut.Close() }
+	}

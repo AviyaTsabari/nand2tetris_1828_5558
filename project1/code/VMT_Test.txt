@@ -1,0 +1,62 @@
+VMT_Test
+librec_info: #(path: #(), lib_committed: "")
+Test
+	{
+	Test_one()
+		{
+		path = "C:\\nand2tetris\\project1\\SimpleAdd.vm"
+
+		VMT().Main(path)
+		}
+	}
+===========================================================
+VMT_Test
+librec_info: #(path: #(), lib_committed: "")
+Test
+	{
+	Test_one()
+		{
+		}
+
+	Test_Main()
+		{
+		VMT.Main("C:\\nand2tetris\\project1\\SimpleAdd.vm")
+		}
+
+	Test_Sub()
+		{
+		VMT.Main("C:\\nand2tetris\\project1\\SimpleSub.vm")
+		}
+
+	Test_Neg()
+		{
+		VMT.Main("C:\\nand2tetris\\project1\\SimpleNeg.vm")
+		}
+
+	Test_Eq()
+		{
+		VMT.Main("C:\\nand2tetris\\project1\\SimpleEq.vm")
+		}
+
+	Test_PopTemp()
+		{
+		VMT.Main("C:\\nand2tetris\\project1\\SimplePopTemp.vm")
+		}
+	Test_BasicTest()
+		{
+		VMT.Main("C:\\nand2tetris\\project1\\BasicTest.vm")
+		}
+	Test_PointerTest()
+		{
+		VMT.Main("C:\\nand2tetris\\project1\\PointerTest.vm")
+		}
+	Test_StaticTest()
+		{
+		VMT.Main("C:\\nand2tetris\\project1\\StaticTest.vm")
+		}
+	Test_StackTest()
+		{
+		VMT.Main("C:\\nand2tetris\\project1\\StackTest.vm")
+		}
+	}
+===========================================================
