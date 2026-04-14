@@ -9,10 +9,9 @@ class
 		cw = CodeWriter(out)
 
 		fileName = inputFile.AfterLast("/")
-		if fileName is inputFile
-			fileName = inputFile.AfterLast("\\")
+		if fileName == ""
+		   fileName = inputFile.AfterLast("\\")
 		fileName = fileName.BeforeLast(".")
-
 		cw.SetFileName(fileName)
 
 		while true
