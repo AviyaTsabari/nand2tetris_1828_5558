@@ -12,16 +12,15 @@ class
 
 	WriteLine(line)
 		{
-		.writeOut.Write(line + "\n")
+		.writeOut.Write(line $ "\n")
 		.currentLine++
 		}
 
-			WriteArithmetic(operation)
+	WriteArithmetic(op)
 		{
-		.WriteLine("// " + operation)
-		op = operation.Lower()
+		.WriteLine("// " $ op)
 
-		if #("add", "sub", "and", "or").Member?(op)
+		if op == "add" or op == "sub" or op == "and" or op == "or"
 			{
 			.WriteLine("@SP")
 			.WriteLine("AM=M-1")
@@ -37,7 +36,7 @@ class
 			else if op == "or"
 				.WriteLine("M=D|M")
 			}
-		else if #("neg", "not").Member?(op)
+		 else if op == "neg" or op == "not"
 			{
 			.WriteLine("@SP")
 			.WriteLine("A=M-1")
@@ -47,7 +46,7 @@ class
 			else if op == "not"
 				.WriteLine("M=!M")
 			}
-		else if #("eq", "lt", "gt").Member?(op)
+		 else if op == "eq" or op == "lt" or op == "gt"
 			{
 			trueLabel = "BOOL_TRUE" $ .labelNumber
 			endLabel = "BOOL_END" $ .labelNumber
@@ -80,21 +79,109 @@ class
 
 			.WriteLine("(" $ endLabel $ ")")
 			}
-		
+		}
 
 	WritePushPop(command, segment, index)
 		{
-		.WriteLine("// " + command + " " + segment + " " + index.Display())
-		// ??? ???? ??????? ?? ?-Stack ??? ????? ?-Java
-		// ?-Suneido ????? ?- .GetLabel(segment)
-		}
+		if command is Parser.C_PUSH
+			cmd = "push"
+		else if command is Parser.C_POP
+			cmd = "pop"
+		else
+			cmd = "unknown"
 
-	GetLabel(segment)
-		{
-		labels = #(local: "@LCL", argument: "@ARG", this: "@THIS", that: "@THAT", temp: "@R5")
-		return labels[segment.Lower()]
+		.WriteLine("// " $ cmd $ " " $ segment $ " " $ index)
+
+		seg = ""
+
+		if segment == "argument"
+			seg = "ARG"
+		else if segment == "local"
+			seg = "LCL"
+		else if segment == "this"
+			seg = "THIS"
+		else if segment == "that"
+			seg = "THAT"
+		else if segment == "temp"
+			seg = "5"
+
+		if segment isnt "constant" and segment isnt "static" and segment isnt "pointer"
+			{
+			.WriteLine("@" $ seg)
+
+			if segment == "temp"
+				.WriteLine("D=A")
+			else
+				.WriteLine("D=M")
+
+			.WriteLine("@" $ index)
+			.WriteLine("D=D+A")
+			.WriteLine("@R13")
+			.WriteLine("M=D")
+			}
+
+		if command is Parser.C_POP
+			{
+			.WriteLine("@SP")
+			.WriteLine("M=M-1")
+			.WriteLine("A=M")
+			.WriteLine("D=M")
+
+			if segment == "pointer"
+				{
+				if index == "0"
+					.WriteLine("@THIS")
+				else
+					.WriteLine("@THAT")
+				}
+			else if segment == "static"
+				{
+				.WriteLine("@" $ .filename $ "." $ index)
+				}
+			else
+				{
+				.WriteLine("@R13")
+				.WriteLine("A=M")
+				}
+
+			.WriteLine("M=D")
+			}
+		else
+			{
+			if segment == "pointer"
+				{
+				if index == "0"
+					.WriteLine("@THIS")
+				else
+					.WriteLine("@THAT")
+
+				.WriteLine("D=M")
+				}
+			else if segment == "static"
+				{
+				.WriteLine("@" $ .filename $ "." $ index)
+				.WriteLine("D=M")
+				}
+			else if segment == "constant"
+				{
+				.WriteLine("@" $ index)
+				.WriteLine("D=A")
+				}
+			else
+				{
+				.WriteLine("@R13")
+				.WriteLine("A=M")
+				.WriteLine("D=M")
+				}
+
+			.WriteLine("@SP")
+			.WriteLine("A=M")
+			.WriteLine("M=D")
+			.WriteLine("@SP")
+			.WriteLine("M=M+1")
+			}
 		}
 
 	Close()
 		{ .writeOut.Close() }
-	}
+}
