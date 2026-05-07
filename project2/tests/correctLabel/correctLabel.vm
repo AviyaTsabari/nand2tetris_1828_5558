@@ -1,0 +1,3 @@
+function Main.test 0
+label LOOP
+goto LOOP

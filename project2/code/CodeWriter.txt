@@ -295,3 +295,322 @@ class
 		}
 	}
 ===========================================================
+CodeWriter
+librec_info: #(path: #(), lib_committed: "")
+class
+	{
+	New(output_file)
+		{
+		.writeOut = output_file
+		.currentLine = 0
+		.labelNumber = 0
+		.filename = ""
+		.currentFunction = ""
+		}
+
+	SetFileName(filename)
+		{
+		.filename = filename
+		}
+
+	WriteLine(line)
+		{
+		.writeOut.Write(line $ "\n")
+		.currentLine++
+		}
+
+	WriteArithmetic(op)
+		{
+		.WriteLine("// " $ op)
+
+		if .isBinaryOp(op)
+			.writeBinaryArithmetic(op)
+		else if .isUnaryOp(op)
+			.writeUnaryArithmetic(op)
+		else if .isCompareOp(op)
+			.writeCompareArithmetic(op)
+		}
+
+	isBinaryOp(op)
+		{
+		return op is "add" or op is "sub" or op is "and" or op is "or"
+		}
+
+	isUnaryOp(op)
+		{
+		return op is "neg" or op is "not"
+		}
+
+	isCompareOp(op)
+		{
+		return op is "eq" or op is "lt" or op is "gt"
+		}
+
+	writeBinaryArithmetic(op)
+		{
+		.WriteLine("@SP")
+		.WriteLine("AM=M-1")
+		.WriteLine("D=M")
+		.WriteLine("A=A-1")
+
+		if op is "add"
+			.WriteLine("M=D+M")
+		else if op is "sub"
+			.WriteLine("M=M-D")
+		else if op is "and"
+			.WriteLine("M=D&M")
+		else if op is "or"
+			.WriteLine("M=D|M")
+		}
+
+	writeUnaryArithmetic(op)
+		{
+		.WriteLine("@SP")
+		.WriteLine("A=M-1")
+
+		if op is "neg"
+			.WriteLine("M=-M")
+		else if op is "not"
+			.WriteLine("M=!M")
+		}
+
+	writeCompareArithmetic(op)
+		{
+		trueLabel = "BOOL_TRUE" $ .labelNumber
+		endLabel = "BOOL_END" $ .labelNumber
+		.labelNumber++
+
+		.WriteLine("@SP")
+		.WriteLine("AM=M-1")
+		.WriteLine("D=M")
+		.WriteLine("A=A-1")
+		.WriteLine("D=M-D")
+
+		.WriteLine("@" $ trueLabel)
+		if op is "eq"
+			.WriteLine("D;JEQ")
+		else if op is "lt"
+			.WriteLine("D;JLT")
+		else if op is "gt"
+			.WriteLine("D;JGT")
+
+		.WriteLine("@SP")
+		.WriteLine("A=M-1")
+		.WriteLine("M=0")
+		.WriteLine("@" $ endLabel)
+		.WriteLine("0;JMP")
+
+		.WriteLine("(" $ trueLabel $ ")")
+		.WriteLine("@SP")
+		.WriteLine("A=M-1")
+		.WriteLine("M=-1")
+		.WriteLine("(" $ endLabel $ ")")
+		}
+
+	WritePushPop(command, segment, index)
+		{
+		cmd = .getCommandName(command)
+		.WriteLine("// " $ cmd $ " " $ segment $ " " $ index)
+
+		if command is Parser.C_PUSH
+			.writePush(segment, index)
+		else if command is Parser.C_POP
+			.writePop(segment, index)
+		}
+
+	getCommandName(command)
+		{
+		if command is Parser.C_PUSH
+			return "push"
+		else if command is Parser.C_POP
+			return "pop"
+		else
+			return "unknown"
+		}
+
+	writePush(segment, index)
+		{
+		if segment is "constant"
+			.writePushConstant(index)
+		else if segment is "pointer"
+			.writePushPointer(index)
+		else if segment is "static"
+			.writePushStatic(index)
+		else
+			{
+			.setAddressToR13(segment, index)
+			.writePushFromR13()
+			}
+		}
+
+	writePop(segment, index)
+		{
+		if segment is "pointer"
+			.writePopPointer(index)
+		else if segment is "static"
+			.writePopStatic(index)
+		else
+			{
+			.setAddressToR13(segment, index)
+			.writePopToR13()
+			}
+		}
+
+	setAddressToR13(segment, index)
+		{
+		base = .getSegmentBase(segment)
+
+		.WriteLine("@" $ base)
+
+		if segment is "temp"
+			.WriteLine("D=A")
+		else
+			.WriteLine("D=M")
+
+		.WriteLine("@" $ index)
+		.WriteLine("D=D+A")
+		.WriteLine("@R13")
+		.WriteLine("M=D")
+		}
+
+	getSegmentBase(segment)
+		{
+		if segment is "argument"
+			return "ARG"
+		else if segment is "local"
+			return "LCL"
+		else if segment is "this"
+			return "THIS"
+		else if segment is "that"
+			return "THAT"
+		else if segment is "temp"
+			return "5"
+		else
+			return ""
+		}
+
+	writePushFromR13()
+		{
+		.WriteLine("@R13")
+		.WriteLine("A=M")
+		.WriteLine("D=M")
+		.writePushD()
+		}
+
+	writePopToR13()
+		{
+		.writePopToD()
+		.WriteLine("@R13")
+		.WriteLine("A=M")
+		.WriteLine("M=D")
+		}
+
+	writePushConstant(index)
+		{
+		.WriteLine("@" $ index)
+		.WriteLine("D=A")
+		.writePushD()
+		}
+
+	writePushPointer(index)
+		{
+		if index is "0"
+			.WriteLine("@THIS")
+		else
+			.WriteLine("@THAT")
+
+		.WriteLine("D=M")
+		.writePushD()
+		}
+
+	writePopPointer(index)
+		{
+		.writePopToD()
+
+		if index is "0"
+			.WriteLine("@THIS")
+		else
+			.WriteLine("@THAT")
+
+		.WriteLine("M=D")
+		}
+
+	writePushStatic(index)
+		{
+		.WriteLine("@" $ .filename $ "." $ index)
+		.WriteLine("D=M")
+		.writePushD()
+		}
+
+	writePopStatic(index)
+		{
+		.writePopToD()
+		.WriteLine("@" $ .filename $ "." $ index)
+		.WriteLine("M=D")
+		}
+
+	writePushD()
+		{
+		.WriteLine("@SP")
+		.WriteLine("A=M")
+		.WriteLine("M=D")
+		.WriteLine("@SP")
+		.WriteLine("M=M+1")
+		}
+
+	writePopToD()
+		{
+		.WriteLine("@SP")
+		.WriteLine("M=M-1")
+		.WriteLine("A=M")
+		.WriteLine("D=M")
+		}
+
+	WriteFunction(functionName, localCount)
+		{
+		.currentFunction = functionName
+		.WriteLine("// function " $ functionName $ " " $ localCount)
+		.WriteLine("(" $ functionName $ ")")
+		}
+
+	getFullLabel(label)
+		{
+		if .currentFunction is ""
+			return label
+
+		return .currentFunction $ "$" $ label
+		}
+
+	WriteLabel(label)
+		{
+		fullLabel = .getFullLabel(label)
+
+		.WriteLine("// label " $ label)
+		.WriteLine("(" $ fullLabel $ ")")
+		}
+
+	WriteGoto(label)
+		{
+		fullLabel = .getFullLabel(label)
+
+		.WriteLine("// goto " $ label)
+		.WriteLine("@" $ fullLabel)
+		.WriteLine("0;JMP")
+		}
+
+	WriteIf(label)
+		{
+		fullLabel = .getFullLabel(label)
+
+		.WriteLine("// if-goto " $ label)
+		.writePopToD()
+		.WriteLine("@" $ fullLabel)
+		.WriteLine("D;JNE")
+		}
+
+	Close()
+		{
+		.writeOut.Close()
+		}
+	}
+===========================================================

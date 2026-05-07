@@ -6,5 +6,10 @@ Test
 		{
 		VMT().Main("C:\\nand2tetris\\project2\\tests\\BasicLoop\\BasicLoop.vm")
 		}
+
+	Test_CorrectLabel()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\correctLabel\\correctLabel.vm")
+		}
 	}
 ===========================================================

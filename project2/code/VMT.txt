@@ -54,3 +54,61 @@ class
 		}
 	}
 ===========================================================
+VMT
+librec_info: #(path: #(), lib_committed: "")
+class
+	{
+	Main(inputFile)
+		{
+		parser = Parser(inputFile)
+		cw = .createCodeWriter(inputFile)
+
+		while true
+			{
+			.translateCommand(parser, cw)
+
+			if parser.HasMoreCommands()
+				parser.Advance()
+			else
+				break
+			}
+
+		cw.Close()
+		}
+
+	createCodeWriter(inputFile)
+		{
+		outputFile = inputFile.BeforeLast(".") $ ".asm"
+		out = File(outputFile, "w")
+		cw = CodeWriter(out)
+
+		fileName = inputFile.AfterLast("/")
+		if fileName is ""
+		   fileName = inputFile.AfterLast("\\")
+		fileName = fileName.BeforeLast(".")
+		cw.SetFileName(fileName)
+
+		return cw
+		}
+
+translateCommand(parser, cw)
+		{
+	type = parser.CommandType()
+
+	if type is Parser.C_ARITHMETIC
+		cw.WriteArithmetic(parser.Arg1())
+	else if type is Parser.C_PUSH or type is Parser.C_POP
+		cw.WritePushPop(type, parser.Arg1(), parser.Arg2())
+	else if type is Parser.C_LABEL
+		cw.WriteLabel(parser.Arg1())
+	else if type is Parser.C_GOTO
+		cw.WriteGoto(parser.Arg1())
+	else if type is Parser.C_IF
+		cw.WriteIf(parser.Arg1())
+	else if type is Parser.C_FUNCTION
+		cw.WriteFunction(parser.Arg1(), parser.Arg2())
+	else
+		throw "Unsupported command: " $ parser.CurrentInstruction()
+		}
+	}
+===========================================================
