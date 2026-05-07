@@ -1,0 +1,10 @@
+VMT_Test
+librec_info: #(path: #(), lib_committed: "")
+Test
+	{
+	Test_BasicLoop()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\BasicLoop\\BasicLoop.vm")
+		}
+	}
+===========================================================
