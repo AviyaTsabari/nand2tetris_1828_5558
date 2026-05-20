@@ -1,71 +1,30 @@
-VMtranslate
-librec_info: #(path: #(), lib_committed: "")
-class
-	{
-	Main(dir)
-		{
-		outFile = dir $ "/Tar0.asm"
-
-		.totalBuy = 0
-		.totalCell = 0
-
-		File(outFile, 'w')
-			{ |out|
-
-			for file in Dir(dir $ "/*.vm")
-				{
-				fileName = file.BeforeLast(".")
-				out.Writeline(fileName)
-
-				File(dir $ "/" $ file, 'r')
-					{ |inp|
-
-					while ((line = inp.Readline()) isnt false)
-						{
-						if line is ""
-							continue
-
-						first = line.BeforeFirst(" ")
-						rest = line.AfterFirst(" ")
-
-						arg1 = rest.BeforeFirst(" ")
-						rest = rest.AfterFirst(" ")
-
-						arg2 = rest.BeforeFirst(" ")
-						arg3 = rest.AfterFirst(" ")
-
-						if first is "buy"
-							.handleBuy(arg1, arg2, arg3, out)
-						else if first is "cell"
-							.handleCell(arg1, arg2, arg3, out)
-						}
-					}
-				}
-
-			out.Writeline("TOTAL BUY: " $ .totalBuy)
-			out.Writeline("TOTAL CELL: " $ .totalCell)
-
-			Print("TOTAL BUY: " $ .totalBuy)
-			Print("TOTAL CELL: " $ .totalCell)
-			}
-		}
-
-	handleBuy(productName, amount, price, out)
-		{
-		sum = Number(amount) * Number(price)
-		.totalBuy += sum
-
-		out.Writeline("### BUY " $ productName $ " ###")
-		out.Writeline(sum)
-		}
-
-	handleCell(productName, amount, price, out)
-		{
-		sum = Number(amount) * Number(price)
-		.totalCell += sum
-
-		out.Writeline("$$$ CELL " $ productName $ " $$$")
-		out.Writeline(sum)
-		}
-	}
-===========================================================
+InputA
+### BUY bread ###
+13.5
+### BUY cheese ###
+10.6
+$$$ CELL cheese $$$
+85.5
+### BUY milk ###
+24.8
+$$$ CELL chocolate $$$
+71.4
+### BUY milk ###
+22.4
+$$$ CELL chocolate $$$
+11
+InputB
+### BUY chocolate ###
+12.5
+$$$ CELL eggs $$$
+621
+### BUY cheese ###
+10.6
+$$$ CELL sugar $$$
+82.5
+$$$ CELL flour $$$
+25.2
+### BUY milk ###
+11.1
+TOTAL BUY: 105.5
+TOTAL CELL: 896.6

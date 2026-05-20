@@ -1,0 +1,88 @@
+class
+	{
+	C_ARITHMETIC: 1
+	C_PUSH: 2
+	C_POP: 3
+
+	currentLineNumber: 0
+	currentCommand: false
+	instructions: #()
+	arithmeticCommands: #(
+		"add", "sub", "neg", "eq", "gt", "lt", "and", "or", "not"
+		)
+
+	New(inputFile)
+		{
+		.LoadInstructions(inputFile)
+
+		if .instructions.Size() is 0
+			throw "No valid instructions."
+
+		.currentCommand = .instructions[0].Split()
+		}
+
+	LoadInstructions(inputFile)
+		{
+		File(inputFile, 'r')
+			{ |f|
+			while false isnt line = f.Readline()
+				{
+				line = line.Trim()
+
+				if line is ""
+					continue
+
+				if line.Prefix?("//")
+					continue
+
+				if line.Has?("//")
+					line = line.BeforeFirst("//").Trim()
+
+				if line isnt ""
+					.instructions.Add(line)
+				}
+			}
+		}
+
+	HasMoreCommands()
+		{
+		return .currentLineNumber < .instructions.Size() - 1
+		}
+
+	Advance()
+		{
+		.currentLineNumber++
+		.currentCommand = .instructions[.currentLineNumber].Split()
+		}
+
+	CommandType()
+		{
+		cmd = .currentCommand[0]
+
+		if .arithmeticCommands.Has?(cmd)
+			return .C_ARITHMETIC
+		else if cmd is "push"
+			return .C_PUSH
+		else if cmd is "pop"
+			return .C_POP
+		else
+			return 0
+		}
+
+	Arg1()
+		{
+		if .CommandType() is .C_ARITHMETIC
+			return .currentCommand[0]
+		return .currentCommand[1]
+		}
+
+	Arg2()
+		{
+		return Number(.currentCommand[2])
+		}
+
+	CurrentInstruction()
+		{
+		return .instructions[.currentLineNumber]
+		}
+	}

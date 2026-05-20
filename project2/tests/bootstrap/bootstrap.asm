@@ -1,0 +1,63 @@
+// bootstrap
+@256
+D=A
+@SP
+M=D
+// call Sys.init 0
+@Sys.init$ret.0
+D=A
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@LCL
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@ARG
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@THIS
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@THAT
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@SP
+D=M
+@0
+D=D-A
+@5
+D=D-A
+@ARG
+M=D
+@SP
+D=M
+@LCL
+M=D
+@Sys.init
+0;JMP
+(Sys.init$ret.0)
+// function Sys.init 0
+(Sys.init)
+// label END
+(Sys.init$END)
+// goto END
+@Sys.init$END
+0;JMP
