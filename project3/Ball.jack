@@ -1,0 +1,57 @@
+class Ball {
+    field int x, y;
+    field int size;
+
+    constructor Ball new() {
+        let x = 250;
+        let y = 20;
+        let size = 10;
+
+        do draw();
+        return this;
+    }
+
+    method void draw() {
+        do Screen.setColor(true);
+        do Screen.drawRectangle(x, y, x + size, y + size);
+        return;
+    }
+
+    method void erase() {
+        do Screen.setColor(false);
+        do Screen.drawRectangle(x, y, x + size, y + size);
+        return;
+    }
+
+    method void fall() {
+        do erase();
+        let y = y + 5;
+        do draw();
+        return;
+    }
+
+    method void reset() {
+        do erase();
+        let x = 250;
+        let y = 20;
+        do draw();
+        return;
+    }
+
+    method int getX() {
+        return x;
+    }
+
+    method int getY() {
+        return y;
+    }
+
+    method int getSize() {
+        return size;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+    }

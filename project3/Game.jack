@@ -1,0 +1,53 @@
+class Game {
+    field Catcher catcher;
+    field Ball ball;
+    field boolean gameOver;
+
+    constructor Game new() {
+        let catcher = Catcher.new();
+        let ball = Ball.new();
+        let gameOver = false;
+
+        return this;
+    }
+
+    method void run() {
+        var int key;
+
+        while (~gameOver) {
+            let key = Keyboard.keyPressed();
+
+            if (key = 130) {
+                do catcher.moveLeft();
+            }
+
+            if (key = 132) {
+                do catcher.moveRight();
+            }
+
+            do ball.fall();
+
+            if (ball.getY() > 220) {
+                if ((ball.getX() > catcher.getX()) & (ball.getX() < (catcher.getX() + catcher.getWidth()))) {
+                    do ball.reset();
+                } else {
+                    let gameOver = true;
+                }
+            }
+
+            do Sys.wait(80);
+        }
+
+        do Output.moveCursor(10, 20);
+        do Output.printString("GAME OVER");
+
+        return;
+    }
+
+    method void dispose() {
+        do catcher.dispose();
+        do ball.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+}

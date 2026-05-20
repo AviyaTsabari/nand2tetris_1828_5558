@@ -1,0 +1,121 @@
+function Catcher.new 0
+push constant 4
+call Memory.alloc 1
+pop pointer 0
+push constant 220
+pop this 0
+push constant 230
+pop this 1
+push constant 70
+pop this 2
+push constant 10
+pop this 3
+push pointer 0
+call Catcher.draw 1
+pop temp 0
+push pointer 0
+return
+function Catcher.draw 0
+push argument 0
+pop pointer 0
+push constant 0
+not
+call Screen.setColor 1
+pop temp 0
+push this 0
+push this 1
+push this 0
+push this 2
+add
+push this 1
+push this 3
+add
+call Screen.drawRectangle 4
+pop temp 0
+push constant 0
+return
+function Catcher.erase 0
+push argument 0
+pop pointer 0
+push constant 0
+call Screen.setColor 1
+pop temp 0
+push this 0
+push this 1
+push this 0
+push this 2
+add
+push this 1
+push this 3
+add
+call Screen.drawRectangle 4
+pop temp 0
+push constant 0
+return
+function Catcher.moveLeft 0
+push argument 0
+pop pointer 0
+push this 0
+push constant 5
+gt
+if-goto IF_TRUE0
+goto IF_FALSE0
+label IF_TRUE0
+push pointer 0
+call Catcher.erase 1
+pop temp 0
+push this 0
+push constant 10
+sub
+pop this 0
+push pointer 0
+call Catcher.draw 1
+pop temp 0
+label IF_FALSE0
+push constant 0
+return
+function Catcher.moveRight 0
+push argument 0
+pop pointer 0
+push this 0
+push constant 435
+lt
+if-goto IF_TRUE0
+goto IF_FALSE0
+label IF_TRUE0
+push pointer 0
+call Catcher.erase 1
+pop temp 0
+push this 0
+push constant 10
+add
+pop this 0
+push pointer 0
+call Catcher.draw 1
+pop temp 0
+label IF_FALSE0
+push constant 0
+return
+function Catcher.getX 0
+push argument 0
+pop pointer 0
+push this 0
+return
+function Catcher.getY 0
+push argument 0
+pop pointer 0
+push this 1
+return
+function Catcher.getWidth 0
+push argument 0
+pop pointer 0
+push this 2
+return
+function Catcher.dispose 0
+push argument 0
+pop pointer 0
+push pointer 0
+call Memory.deAlloc 1
+pop temp 0
+push constant 0
+return
