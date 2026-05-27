@@ -1,371 +1,433 @@
 class
-    {
-    // Constructor
-    // Initializes the token list, current token index,
-    // and output file.
-    New(tokensFile, out)
-        {
-        .tokens = Object()
-        .current = 0
-        .out = out
+	{
+	// Constructor
+	// Initializes the token list, current token index,
+	// and output file.
+	New(tokensFile, out)
+		{
+		.tokens = Object()
+		.current = 0
+		.writeOut = out
 
-        .LoadTokens(tokensFile)
-        }
+		.LoadTokens(tokensFile)
+		}
 
-    // Reads all tokens from the XXXT.xml file
-    // and stores them in the tokens array.
-    LoadTokens(tokensFile)
-        {
-        File(tokensFile, "r")
-            { |f|
-            for line in f
-                {
-                line = line.Trim()
+// Writes one line to the output file
+WriteLine(line)
+	{
+	.writeOut.Write(line $ "\n")
+	}
+	// Reads all tokens from the XXXT.xml file
+	// and stores them in the tokens array.
+	LoadTokens(tokensFile)
+		{
+		File(tokensFile, "r")
+			{ |f|
+			for line in f
+				{
+				line = line.Trim()
 
-                // Skip opening and closing tokens tags
-                if line is "<tokens>" or line is "</tokens>" or line is ""
-                    continue
+				// Skip opening and closing tokens tags
+				if line is "<tokens>" or line is "</tokens>" or line is ""
+					continue
 
-                .tokens.Add(line)
-                }
-            }
-        }
+				.tokens.Add(line)
+				}
+			}
+		}
 
-    // Returns the current token
-    CurrentToken()
-        {
-        return .tokens[.current]
-        }
+	// Returns the current token
+	CurrentToken()
+		{
+		return .tokens[.current]
+		}
 
-    // Moves to the next token
-    Advance()
-        {
-        .current++
-        }
+	// Moves to the next token
+	Advance()
+		{
+		.current++
+		}
 
-    // Checks that the current token matches the expected value,
-    // writes it to the output file,
-    // and advances to the next token.
-    Match(expected)
-    {
-    token = .CurrentToken()
+	// Checks that the current token matches the expected value,
+	// writes it to the output file,
+	// and advances to the next token.
+	Match(expected)
+	{
+	token = .CurrentToken()
 
-    if token.Has?(expected)
-        {
-        .out.Writeline(token)
-        .Advance()
-        }
-    else
-        {
-        throw "Syntax error. Expected: " $ expected $
-            ", got: " $ token
-        }
-    }
-    // Starts compiling the class
-    // Compiles a complete class
-    CompileClass()
-    {
-    .out.Writeline("<class>")
+	if token.Has?(expected)
+		{
+		.WriteLine(token)
+		.Advance()
+		}
+	else
+		{
+		throw "Syntax error. Expected: " $ expected $
+			", got: " $ token
+		}
+	}
+	// Starts compiling the class
+	// Compiles a complete class
+	CompileClass()
+	{
+	.WriteLine("<class>")
 
-    // 'class'
-    .Match("class")
+	// 'class'
+	.Match("class")
 
-    // className
-    .out.Writeline(.CurrentToken())
-    .Advance()
+	// className
+	.WriteLine(.CurrentToken())
+	.Advance()
 
-    .Match("{")
+	.Match("{")
 
-    // classVarDec*
-    while .CurrentToken().Has?("static") or
-          .CurrentToken().Has?("field")
-        {
-        .CompileClassVarDec()
-        }
+	// classVarDec*
+	while .CurrentToken().Has?("static") or
+		  .CurrentToken().Has?("field")
+		{
+		.CompileClassVarDec()
+		}
 
-    // subroutineDec*
-    while .CurrentToken().Has?("constructor") or
-          .CurrentToken().Has?("function") or
-          .CurrentToken().Has?("method")
-        {
-        .CompileSubroutine()
-        }
+	// subroutineDec*
+	while .CurrentToken().Has?("constructor") or
+		  .CurrentToken().Has?("function") or
+		  .CurrentToken().Has?("method")
+		{
+		.CompileSubroutine()
+		}
 
-    // '}'
-    .Match("}")
+	// '}'
+	.Match("}")
 
-    .out.Writeline("</class>")
-    }
+	.WriteLine("</class>")
+	}
 
 // Compiles a static declaration or field declaration
-    CompileClassVarDec()
-    {
-    .WriteLine("<classVarDec>")
+	CompileClassVarDec()
+	{
+	.WriteLine("<classVarDec>")
 
-    // static | field
-    if .CurrentToken().Has?("static")
-        .Match("static")
-    else
-        .Match("field")
+	// static | field
+	if .CurrentToken().Has?("static")
+		.Match("static")
+	else
+		.Match("field")
 
-    // type
-    .WriteLine(.CurrentToken())
-    .Advance()
+	// type
+	.WriteLine(.CurrentToken())
+	.Advance()
 
-    // varName
-    .WriteLine(.CurrentToken())
-    .Advance()
+	// varName
+	.WriteLine(.CurrentToken())
+	.Advance()
 
-    // (, varName)*
-    while .CurrentToken().Has?(",")
-        {
-        .Match(",")
+	// (, varName)*
+	while .CurrentToken().Has?(",")
+		{
+		.Match(",")
 
-        .WriteLine(.CurrentToken())
-        .Advance()
-        }
+		.WriteLine(.CurrentToken())
+		.Advance()
+		}
 
-    // ;
-    .Match(";")
+	// ;
+	.Match(";")
 
-    .WriteLine("</classVarDec>")
-    }
-    
-    // Compiles a complete method, function, or constructor
+	.WriteLine("</classVarDec>")
+	}
+
+	// Compiles a complete method, function, or constructor
 CompileSubroutine()
-    {
-    .WriteLine("<subroutineDec>")
+	{
+	.WriteLine("<subroutineDec>")
 
-    // constructor | function | method
-    if .CurrentToken().Has?("constructor")
-        .Match("constructor")
-    else if .CurrentToken().Has?("function")
-        .Match("function")
-    else
-        .Match("method")
+	// constructor | function | method
+	if .CurrentToken().Has?("constructor")
+		.Match("constructor")
+	else if .CurrentToken().Has?("function")
+		.Match("function")
+	else
+		.Match("method")
 
-    // void | type
-    .WriteLine(.CurrentToken())
-    .Advance()
+	// void | type
+	.WriteLine(.CurrentToken())
+	.Advance()
 
-    // subroutineName
-    .WriteLine(.CurrentToken())
-    .Advance()
+	// subroutineName
+	.WriteLine(.CurrentToken())
+	.Advance()
 
-    // '('
-    .Match("(")
+	// '('
+	.Match("(")
 
-    // parameterList
-    .CompileParameterList()
+	// parameterList
+	.CompileParameterList()
 
-    // ')'
-    .Match(")")
+	// ')'
+	.Match(")")
 
-    // subroutineBody
-    .CompileSubroutineBody()
+	// subroutineBody
+	.CompileSubroutineBody()
 
-    .WriteLine("</subroutineDec>")
-    }
-    
-    // Compiles a possibly empty parameter list
+	.WriteLine("</subroutineDec>")
+	}
+
+	// Compiles a possibly empty parameter list
 CompileParameterList()
-    {
-    .WriteLine("<parameterList>")
-    if not .CurrentToken().Has?(")")
-        {
-        // type
-        .WriteLine(.CurrentToken())
-        .Advance()
+	{
+	.WriteLine("<parameterList>")
+	if not .CurrentToken().Has?(")")
+		{
+		// type
+		.WriteLine(.CurrentToken())
+		.Advance()
 
-        // varName
-        .WriteLine(.CurrentToken())
-        .Advance()
+		// varName
+		.WriteLine(.CurrentToken())
+		.Advance()
 
-        // (, type varName)*
-        while .CurrentToken().Has?(",")
-            {
-            .Match(",")
+		// (, type varName)*
+		while .CurrentToken().Has?(",")
+			{
+			.Match(",")
 
-            // type
-            .WriteLine(.CurrentToken())
-            .Advance()
+			// type
+			.WriteLine(.CurrentToken())
+			.Advance()
 
-            // varName
-            .WriteLine(.CurrentToken())
-            .Advance()
-            }
-        }
-    .WriteLine("</parameterList>")
-    }
+			// varName
+			.WriteLine(.CurrentToken())
+			.Advance()
+			}
+		}
+	.WriteLine("</parameterList>")
+	}
 
 // Compiles the body of a subroutine
 CompileSubroutineBody()
-    {
-    .WriteLine("<subroutineBody>")
+	{
+	.WriteLine("<subroutineBody>")
 
-    .Match("{")
+	.Match("{")
 
-    while .CurrentToken().Has?("var")
-        {
-        .CompileVarDec()
-        }
+	while .CurrentToken().Has?("var")
+		{
+		.CompileVarDec()
+		}
 
-    .CompileStatements()
+	.CompileStatements()
 
-    .Match("}")
+	.Match("}")
 
-    .WriteLine("</subroutineBody>")
-    }
-    
-    // Compiles a var declaration
+	.WriteLine("</subroutineBody>")
+	}
+
+	// Compiles a var declaration
 CompileVarDec()
-    {
-    .WriteLine("<varDec>")
+	{
+	.WriteLine("<varDec>")
 
-    .Match("var")
+	.Match("var")
 
-    // type
-    .WriteLine(.CurrentToken())
-    .Advance()
+	// type
+	.WriteLine(.CurrentToken())
+	.Advance()
 
-    // varName
-    .WriteLine(.CurrentToken())
-    .Advance()
+	// varName
+	.WriteLine(.CurrentToken())
+	.Advance()
 
-    // (, varName)*
-    while .CurrentToken().Has?(",")
-        {
-        .Match(",")
+	// (, varName)*
+	while .CurrentToken().Has?(",")
+		{
+		.Match(",")
 
-        .WriteLine(.CurrentToken())
-        .Advance()
-        }
+		.WriteLine(.CurrentToken())
+		.Advance()
+		}
 
-    .Match(";")
+	.Match(";")
 
-    .WriteLine("</varDec>")
-    }
-    
-    // Compiles a sequence of statements
+	.WriteLine("</varDec>")
+	}
+
+	// Compiles a sequence of statements
 CompileStatements()
-    {
-    .WriteLine("<statements>")
+	{
+	.WriteLine("<statements>")
 
-    while .CurrentToken().Has?("let") or
-          .CurrentToken().Has?("if") or
-          .CurrentToken().Has?("while") or
-          .CurrentToken().Has?("do") or
-          .CurrentToken().Has?("return")
-        {
-        if .CurrentToken().Has?("let")
-            .CompileLet()
-        else if .CurrentToken().Has?("if")
-            .CompileIf()
-        else if .CurrentToken().Has?("while")
-            .CompileWhile()
-        else if .CurrentToken().Has?("do")
-            .CompileDo()
-        else
-            .CompileReturn()
-        }
+	while .CurrentToken().Has?("let") or
+		  .CurrentToken().Has?("if") or
+		  .CurrentToken().Has?("while") or
+		  .CurrentToken().Has?("do") or
+		  .CurrentToken().Has?("return")
+		{
+		if .CurrentToken().Has?("let")
+			.CompileLet()
+		else if .CurrentToken().Has?("if")
+			.CompileIf()
+		else if .CurrentToken().Has?("while")
+			.CompileWhile()
+		else if .CurrentToken().Has?("do")
+			.CompileDo()
+		else
+			.CompileReturn()
+		}
 
-    .WriteLine("</statements>")
-    }
-    
+	.WriteLine("</statements>")
+	}
+
   // Compiles a let statement
 CompileLet()
-    {
-    .WriteLine("<letStatement>")
+	{
+	.WriteLine("<letStatement>")
 
-    // let
-    .Match("let")
+	// let
+	.Match("let")
 
-    // varName
-    .WriteLine(.CurrentToken())
-    .Advance()
+	// varName
+	.WriteLine(.CurrentToken())
+	.Advance()
 
-    // ('[' expression ']')?
-    if .CurrentToken().Has?("[")
-        {
-        .Match("[")
+	// ('[' expression ']')?
+	if .CurrentToken().Has?("[")
+		{
+		.Match("[")
 
-        .CompileExpression()
+		.CompileExpression()
 
-        .Match("]")
-        }
+		.Match("]")
+		}
 
-    // =
-    .Match("=")
+	// =
+	.Match("=")
 
-    // expression
-    .CompileExpression()
+	// expression
+	.CompileExpression()
 
-    // ;
-    .Match(";")
+	// ;
+	.Match(";")
 
-    .WriteLine("</letStatement>")
-    }
+	.WriteLine("</letStatement>")
+	}
 
 // Compiles an if statement
 CompileIf()
-    {
-    .WriteLine("<ifStatement>")
-    .Match("if")
-    // next step
-    .WriteLine("</ifStatement>")
-    }
+	{
+	.WriteLine("<ifStatement>")
+	.Match("if")
+	// next step
+	.WriteLine("</ifStatement>")
+	}
 
 // Compiles a while statement
 CompileWhile()
-    {
-    .WriteLine("<whileStatement>")
-    .Match("while")
-    // next step
-    .WriteLine("</whileStatement>")
-    }
+	{
+	.WriteLine("<whileStatement>")
+	.Match("while")
+	// next step
+	.WriteLine("</whileStatement>")
+	}
 
 // Compiles a do statement
 CompileDo()
-    {
-    .WriteLine("<doStatement>")
-    .Match("do")
-    // next step
-    .WriteLine("</doStatement>")
-    }
+	{
+	.WriteLine("<doStatement>")
+	.Match("do")
+	// next step
+	.WriteLine("</doStatement>")
+	}
 
 // Compiles a return statement
 CompileReturn()
-    {
-    .WriteLine("<returnStatement>")
-    .Match("return")
-    // next step
-    .WriteLine("</returnStatement>")
-    }
-    
-    // Compiles an expression
+	{
+	.WriteLine("<returnStatement>")
+
+	.Match("return")
+
+	if not .CurrentToken().Has?(";")
+		{
+		.CompileExpression()
+		}
+
+	.Match(";")
+
+	.WriteLine("</returnStatement>")
+	}
+
+	// Compiles an expression
 CompileExpression()
-    {
-    .WriteLine("<expression>")
+	{
+	.WriteLine("<expression>")
 
-    .CompileTerm()
+	.CompileTerm()
 
-    .WriteLine("</expression>")
-    }
-    
-    // Compiles a term
+	// (op term)*
+	while .IsOp()
+		{
+		.WriteLine(.CurrentToken())
+		.Advance()
+
+		.CompileTerm()
+		}
+
+	.WriteLine("</expression>")
+	}
+
+	// Checks if the current token is an operator
+IsOp()
+	{
+	token = .CurrentToken()
+
+	return token.Has?("+") or
+		   token.Has?("-") or
+		   token.Has?("*") or
+		   token.Has?("/") or
+		   token.Has?("&amp;") or
+		   token.Has?("|") or
+		   token.Has?("&lt;") or
+		   token.Has?("&gt;") or
+		   token.Has?("=")
+	}
+
+	// Compiles a term
 CompileTerm()
-    {
-    .WriteLine("<term>")
+	{
+	.WriteLine("<term>")
 
-    .WriteLine(.CurrentToken())
-    .Advance()
+	// '(' expression ')'
+	if .CurrentToken().Has?("(")
+		{
+		.Match("(")
 
-    .WriteLine("</term>")
-    }
-    
-    // Closes the output file
-    Close()
-        {
-        .out.Close()
-        }
-    }
+		.CompileExpression()
+
+		.Match(")")
+		}
+
+	// unaryOp term
+	else if .CurrentToken().Has?("-") or
+			.CurrentToken().Has?("~")
+		{
+		.WriteLine(.CurrentToken())
+		.Advance()
+
+		.CompileTerm()
+		}
+
+	// simple term
+	else
+		{
+		.WriteLine(.CurrentToken())
+		.Advance()
+		}
+
+	.WriteLine("</term>")
+	}
+
+	// Closes the output file
+	Close()
+		{
+		.writeOut.Close()
+		}
+	}
