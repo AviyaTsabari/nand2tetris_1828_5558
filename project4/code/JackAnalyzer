@@ -1,0 +1,19 @@
+class
+    {
+    Main(inputPath)
+        {
+        ce = .CreateCompilationEngine(inputPath)
+        ce.CompileClass()
+        ce.Close()
+        }
+
+    CreateCompilationEngine(inputPath)
+        {
+        outputFile = inputPath.BeforeLast("T.xml") $ ".xml"
+
+        out = File(outputFile, "w")
+        ce = CompilationEngine(inputPath, out)
+
+        return ce
+        }
+    }
