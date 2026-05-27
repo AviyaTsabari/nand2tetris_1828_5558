@@ -171,6 +171,30 @@ CompileSubroutine()
 CompileParameterList()
     {
     .WriteLine("<parameterList>")
+    if not .CurrentToken().Has?(")")
+        {
+        // type
+        .WriteLine(.CurrentToken())
+        .Advance()
+
+        // varName
+        .WriteLine(.CurrentToken())
+        .Advance()
+
+        // (, type varName)*
+        while .CurrentToken().Has?(",")
+            {
+            .Match(",")
+
+            // type
+            .WriteLine(.CurrentToken())
+            .Advance()
+
+            // varName
+            .WriteLine(.CurrentToken())
+            .Advance()
+            }
+        }
     .WriteLine("</parameterList>")
     }
 
@@ -193,8 +217,105 @@ CompileSubroutineBody()
     .WriteLine("</subroutineBody>")
     }
     
+    // Compiles a var declaration
+CompileVarDec()
+    {
+    .WriteLine("<varDec>")
+
+    .Match("var")
+
+    // type
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    // varName
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    // (, varName)*
+    while .CurrentToken().Has?(",")
+        {
+        .Match(",")
+
+        .WriteLine(.CurrentToken())
+        .Advance()
+        }
+
+    .Match(";")
+
+    .WriteLine("</varDec>")
+    }
     
+    // Compiles a sequence of statements
+CompileStatements()
+    {
+    .WriteLine("<statements>")
+
+    while .CurrentToken().Has?("let") or
+          .CurrentToken().Has?("if") or
+          .CurrentToken().Has?("while") or
+          .CurrentToken().Has?("do") or
+          .CurrentToken().Has?("return")
+        {
+        if .CurrentToken().Has?("let")
+            .CompileLet()
+        else if .CurrentToken().Has?("if")
+            .CompileIf()
+        else if .CurrentToken().Has?("while")
+            .CompileWhile()
+        else if .CurrentToken().Has?("do")
+            .CompileDo()
+        else
+            .CompileReturn()
+        }
+
+    .WriteLine("</statements>")
+    }
     
+    // Compiles a let statement
+CompileLet()
+    {
+    .WriteLine("<letStatement>")
+    .Match("let")
+    // next step
+    .WriteLine("</letStatement>")
+    }
+
+// Compiles an if statement
+CompileIf()
+    {
+    .WriteLine("<ifStatement>")
+    .Match("if")
+    // next step
+    .WriteLine("</ifStatement>")
+    }
+
+// Compiles a while statement
+CompileWhile()
+    {
+    .WriteLine("<whileStatement>")
+    .Match("while")
+    // next step
+    .WriteLine("</whileStatement>")
+    }
+
+// Compiles a do statement
+CompileDo()
+    {
+    .WriteLine("<doStatement>")
+    .Match("do")
+    // next step
+    .WriteLine("</doStatement>")
+    }
+
+// Compiles a return statement
+CompileReturn()
+    {
+    .WriteLine("<returnStatement>")
+    .Match("return")
+    // next step
+    .WriteLine("</returnStatement>")
+    }
     
     
     // Closes the output file
