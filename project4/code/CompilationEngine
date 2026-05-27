@@ -1,0 +1,21 @@
+class
+	{
+	New(tokensFile, out)
+		{
+		.tokens = Object()
+		.current = 0
+		.out = out
+
+		.LoadTokens(tokensFile)
+		}
+
+	CompileClass()
+		{
+
+		}
+
+	Close()
+		{
+		.out.Close()
+		}
+	}
