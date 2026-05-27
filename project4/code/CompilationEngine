@@ -31,39 +31,6 @@ class
             }
         }
 
-// Compiles a static declaration or field declaration
-CompileClassVarDec()
-    {
-    .WriteLine("<classVarDec>")
-
-    // static | field
-    if .CurrentToken().Has?("static")
-        .Match("static")
-    else
-        .Match("field")
-
-    // type
-    .WriteLine(.CurrentToken())
-    .Advance()
-
-    // varName
-    .WriteLine(.CurrentToken())
-    .Advance()
-
-    // (, varName)*
-    while .CurrentToken().Has?(",")
-        {
-        .Match(",")
-
-        .WriteLine(.CurrentToken())
-        .Advance()
-        }
-
-    // ;
-    .Match(";")
-
-    .WriteLine("</classVarDec>")
-    }
     // Returns the current token
     CurrentToken()
         {
@@ -130,6 +97,106 @@ CompileClassVarDec()
     .out.Writeline("</class>")
     }
 
+// Compiles a static declaration or field declaration
+    CompileClassVarDec()
+    {
+    .WriteLine("<classVarDec>")
+
+    // static | field
+    if .CurrentToken().Has?("static")
+        .Match("static")
+    else
+        .Match("field")
+
+    // type
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    // varName
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    // (, varName)*
+    while .CurrentToken().Has?(",")
+        {
+        .Match(",")
+
+        .WriteLine(.CurrentToken())
+        .Advance()
+        }
+
+    // ;
+    .Match(";")
+
+    .WriteLine("</classVarDec>")
+    }
+    
+    // Compiles a complete method, function, or constructor
+CompileSubroutine()
+    {
+    .WriteLine("<subroutineDec>")
+
+    // constructor | function | method
+    if .CurrentToken().Has?("constructor")
+        .Match("constructor")
+    else if .CurrentToken().Has?("function")
+        .Match("function")
+    else
+        .Match("method")
+
+    // void | type
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    // subroutineName
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    // '('
+    .Match("(")
+
+    // parameterList
+    .CompileParameterList()
+
+    // ')'
+    .Match(")")
+
+    // subroutineBody
+    .CompileSubroutineBody()
+
+    .WriteLine("</subroutineDec>")
+    }
+    
+    // Compiles a possibly empty parameter list
+CompileParameterList()
+    {
+    .WriteLine("<parameterList>")
+    .WriteLine("</parameterList>")
+    }
+
+// Compiles the body of a subroutine
+CompileSubroutineBody()
+    {
+    .WriteLine("<subroutineBody>")
+
+    .Match("{")
+
+    while .CurrentToken().Has?("var")
+        {
+        .CompileVarDec()
+        }
+
+    .CompileStatements()
+
+    .Match("}")
+
+    .WriteLine("</subroutineBody>")
+    }
+    
+    
+    
+    
+    
     // Closes the output file
     Close()
         {
