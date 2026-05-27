@@ -272,12 +272,37 @@ CompileStatements()
     .WriteLine("</statements>")
     }
     
-    // Compiles a let statement
+  // Compiles a let statement
 CompileLet()
     {
     .WriteLine("<letStatement>")
+
+    // let
     .Match("let")
-    // next step
+
+    // varName
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    // ('[' expression ']')?
+    if .CurrentToken().Has?("[")
+        {
+        .Match("[")
+
+        .CompileExpression()
+
+        .Match("]")
+        }
+
+    // =
+    .Match("=")
+
+    // expression
+    .CompileExpression()
+
+    // ;
+    .Match(";")
+
     .WriteLine("</letStatement>")
     }
 
@@ -317,6 +342,26 @@ CompileReturn()
     .WriteLine("</returnStatement>")
     }
     
+    // Compiles an expression
+CompileExpression()
+    {
+    .WriteLine("<expression>")
+
+    .CompileTerm()
+
+    .WriteLine("</expression>")
+    }
+    
+    // Compiles a term
+CompileTerm()
+    {
+    .WriteLine("<term>")
+
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    .WriteLine("</term>")
+    }
     
     // Closes the output file
     Close()
