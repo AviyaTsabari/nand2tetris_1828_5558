@@ -333,8 +333,30 @@ CompileWhile()
 CompileDo()
 	{
 	.WriteLine("<doStatement>")
+
 	.Match("do")
-	// next step
+
+	// subroutineName | className | varName
+	.WriteLine(.CurrentToken())
+	.Advance()
+
+	// Optional: . subroutineName
+	if .CurrentToken().Has?(".")
+		{
+		.Match(".")
+
+		.WriteLine(.CurrentToken())
+		.Advance()
+		}
+
+	.Match("(")
+
+	.CompileExpressionList()
+
+	.Match(")")
+
+	.Match(";")
+
 	.WriteLine("</doStatement>")
 	}
 
@@ -423,6 +445,25 @@ CompileTerm()
 		}
 
 	.WriteLine("</term>")
+	}
+
+// Compiles a possibly empty expression list
+CompileExpressionList()
+	{
+	.WriteLine("<expressionList>")
+
+	if not .CurrentToken().Has?(")")
+		{
+		.CompileExpression()
+
+		while .CurrentToken().Has?(",")
+			{
+			.Match(",")
+			.CompileExpression()
+			}
+		}
+
+	.WriteLine("</expressionList>")
 	}
 
 	// Closes the output file
