@@ -1,21 +1,57 @@
 class
-	{
-	New(tokensFile, out)
-		{
-		.tokens = Object()
-		.current = 0
-		.out = out
+    {
+    // Constructor
+    // Initializes the token list, current token index,
+    // and output file.
+    New(tokensFile, out)
+        {
+        .tokens = Object()
+        .current = 0
+        .out = out
 
-		.LoadTokens(tokensFile)
-		}
+        .LoadTokens(tokensFile)
+        }
 
-	CompileClass()
-		{
+    // Reads all tokens from the XXXT.xml file
+    // and stores them in the tokens array.
+    LoadTokens(tokensFile)
+        {
+        File(tokensFile, "r")
+            { |f|
+            for line in f
+                {
+                line = line.Trim()
 
-		}
+                // Skip opening and closing tokens tags
+                if line is "<tokens>" or line is "</tokens>" or line is ""
+                    continue
 
-	Close()
-		{
-		.out.Close()
-		}
-	}
+                .tokens.Add(line)
+                }
+            }
+        }
+
+    // Returns the current token
+    CurrentToken()
+        {
+        return .tokens[.current]
+        }
+
+    // Moves to the next token
+    Advance()
+        {
+        .current++
+        }
+
+    // Starts compiling the class
+    CompileClass()
+        {
+        // Will be implemented next
+        }
+
+    // Closes the output file
+    Close()
+        {
+        .out.Close()
+        }
+    }
