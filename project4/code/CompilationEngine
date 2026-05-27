@@ -315,8 +315,33 @@ CompileLet()
 CompileIf()
 	{
 	.WriteLine("<ifStatement>")
+
 	.Match("if")
-	// next step
+
+	.Match("(")
+
+	.CompileExpression()
+
+	.Match(")")
+
+	.Match("{")
+
+	.CompileStatements()
+
+	.Match("}")
+
+	// Optional else part
+	if .CurrentToken().Has?("else")
+		{
+		.Match("else")
+
+		.Match("{")
+
+		.CompileStatements()
+
+		.Match("}")
+		}
+
 	.WriteLine("</ifStatement>")
 	}
 
@@ -324,11 +349,23 @@ CompileIf()
 CompileWhile()
 	{
 	.WriteLine("<whileStatement>")
+
 	.Match("while")
-	// next step
+
+	.Match("(")
+
+	.CompileExpression()
+
+	.Match(")")
+
+	.Match("{")
+
+	.CompileStatements()
+
+	.Match("}")
+
 	.WriteLine("</whileStatement>")
 	}
-
 // Compiles a do statement
 CompileDo()
 	{
