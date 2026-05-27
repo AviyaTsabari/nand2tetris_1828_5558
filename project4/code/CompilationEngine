@@ -17,6 +17,16 @@ WriteLine(line)
 	{
 	.writeOut.Write(line $ "\n")
 	}
+
+// Writes the current token to the output file
+// and moves to the next token.
+WriteCurrentAndAdvance()
+	{
+	.WriteLine(.CurrentToken())
+	.Advance()
+	}
+
+
 	// Reads all tokens from the XXXT.xml file
 	// and stores them in the tokens array.
 	LoadTokens(tokensFile)
@@ -57,8 +67,7 @@ WriteLine(line)
 
 	if token.Has?(expected)
 		{
-		.WriteLine(token)
-		.Advance()
+		.WriteCurrentAndAdvance()
 		}
 	else
 		{
@@ -66,6 +75,17 @@ WriteLine(line)
 			", got: " $ token
 		}
 	}
+
+// Returns the next token without advancing
+Peek()
+	{
+	if .current + 1 >= .tokens.Size()
+		return ""
+
+	return .tokens[.current + 1]
+	}
+
+
 	// Starts compiling the class
 	// Compiles a complete class
 	CompileClass()
@@ -76,8 +96,7 @@ WriteLine(line)
 	.Match("class")
 
 	// className
-	.WriteLine(.CurrentToken())
-	.Advance()
+	.WriteCurrentAndAdvance()
 
 	.Match("{")
 
@@ -114,20 +133,17 @@ WriteLine(line)
 		.Match("field")
 
 	// type
-	.WriteLine(.CurrentToken())
-	.Advance()
+	.WriteCurrentAndAdvance()
 
 	// varName
-	.WriteLine(.CurrentToken())
-	.Advance()
+	.WriteCurrentAndAdvance()
 
 	// (, varName)*
 	while .CurrentToken().Has?(",")
 		{
 		.Match(",")
 
-		.WriteLine(.CurrentToken())
-		.Advance()
+		.WriteCurrentAndAdvance()
 		}
 
 	// ;
@@ -150,12 +166,10 @@ CompileSubroutine()
 		.Match("method")
 
 	// void | type
-	.WriteLine(.CurrentToken())
-	.Advance()
+	.WriteCurrentAndAdvance()
 
 	// subroutineName
-	.WriteLine(.CurrentToken())
-	.Advance()
+	.WriteCurrentAndAdvance()
 
 	// '('
 	.Match("(")
@@ -179,12 +193,10 @@ CompileParameterList()
 	if not .CurrentToken().Has?(")")
 		{
 		// type
-		.WriteLine(.CurrentToken())
-		.Advance()
+		.WriteCurrentAndAdvance()
 
 		// varName
-		.WriteLine(.CurrentToken())
-		.Advance()
+		.WriteCurrentAndAdvance()
 
 		// (, type varName)*
 		while .CurrentToken().Has?(",")
@@ -192,12 +204,10 @@ CompileParameterList()
 			.Match(",")
 
 			// type
-			.WriteLine(.CurrentToken())
-			.Advance()
+			.WriteCurrentAndAdvance()
 
 			// varName
-			.WriteLine(.CurrentToken())
-			.Advance()
+			.WriteCurrentAndAdvance()
 			}
 		}
 	.WriteLine("</parameterList>")
@@ -230,20 +240,17 @@ CompileVarDec()
 	.Match("var")
 
 	// type
-	.WriteLine(.CurrentToken())
-	.Advance()
+	.WriteCurrentAndAdvance()
 
 	// varName
-	.WriteLine(.CurrentToken())
-	.Advance()
+	.WriteCurrentAndAdvance()
 
 	// (, varName)*
 	while .CurrentToken().Has?(",")
 		{
 		.Match(",")
 
-		.WriteLine(.CurrentToken())
-		.Advance()
+		.WriteCurrentAndAdvance()
 		}
 
 	.Match(";")
@@ -286,8 +293,7 @@ CompileLet()
 	.Match("let")
 
 	// varName
-	.WriteLine(.CurrentToken())
-	.Advance()
+	.WriteCurrentAndAdvance()
 
 	// ('[' expression ']')?
 	if .CurrentToken().Has?("[")
@@ -330,7 +336,6 @@ CompileIf()
 
 	.Match("}")
 
-	// Optional else part
 	if .CurrentToken().Has?("else")
 		{
 		.Match("else")
@@ -366,6 +371,7 @@ CompileWhile()
 
 	.WriteLine("</whileStatement>")
 	}
+
 // Compiles a do statement
 CompileDo()
 	{
@@ -373,24 +379,7 @@ CompileDo()
 
 	.Match("do")
 
-	// subroutineName | className | varName
-	.WriteLine(.CurrentToken())
-	.Advance()
-
-	// Optional: . subroutineName
-	if .CurrentToken().Has?(".")
-		{
-		.Match(".")
-
-		.WriteLine(.CurrentToken())
-		.Advance()
-		}
-
-	.Match("(")
-
-	.CompileExpressionList()
-
-	.Match(")")
+	.CompileSubroutineCall()
 
 	.Match(";")
 
@@ -424,14 +413,39 @@ CompileExpression()
 	// (op term)*
 	while .IsOp()
 		{
-		.WriteLine(.CurrentToken())
-		.Advance()
+		.WriteCurrentAndAdvance()
 
 		.CompileTerm()
 		}
 
 	.WriteLine("</expression>")
 	}
+
+
+
+// Compiles a possibly empty expression list
+CompileExpressionList()
+	{
+	.WriteLine("<expressionList>")
+
+	if not .CurrentToken().Has?(")")
+		{
+		.CompileExpression()
+
+		while .CurrentToken().Has?(",")
+			{
+			.Match(",")
+
+			.CompileExpression()
+			}
+		}
+
+	.WriteLine("</expressionList>")
+	}
+
+
+
+
 
 	// Checks if the current token is an operator
 IsOp()
@@ -454,53 +468,66 @@ CompileTerm()
 	{
 	.WriteLine("<term>")
 
-	// '(' expression ')'
 	if .CurrentToken().Has?("(")
 		{
 		.Match("(")
-
 		.CompileExpression()
-
 		.Match(")")
 		}
-
-	// unaryOp term
 	else if .CurrentToken().Has?("-") or
 			.CurrentToken().Has?("~")
 		{
-		.WriteLine(.CurrentToken())
-		.Advance()
-
+		.WriteCurrentAndAdvance()
 		.CompileTerm()
 		}
-
-	// simple term
 	else
 		{
-		.WriteLine(.CurrentToken())
-		.Advance()
+		next = .Peek()
+
+		if next.Has?("[")
+			{
+			.WriteCurrentAndAdvance()
+			.Match("[")
+			.CompileExpression()
+			.Match("]")
+			}
+		else if next.Has?("(") or next.Has?(".")
+	       {
+	       .CompileSubroutineCall()
+	       }
+		else
+			{
+			.WriteCurrentAndAdvance()
+			}
 		}
+
 
 	.WriteLine("</term>")
 	}
 
-// Compiles a possibly empty expression list
-CompileExpressionList()
+// Compiles a subroutine call.
+// Handles both:
+// subroutineName(expressionList)
+// className.subroutineName(expressionList)
+// varName.subroutineName(expressionList)
+CompileSubroutineCall()
 	{
-	.WriteLine("<expressionList>")
+	// subroutineName | className | varName
+	.WriteCurrentAndAdvance()
 
-	if not .CurrentToken().Has?(")")
+	if .CurrentToken().Has?(".")
 		{
-		.CompileExpression()
+		.Match(".")
 
-		while .CurrentToken().Has?(",")
-			{
-			.Match(",")
-			.CompileExpression()
-			}
+		// subroutineName
+		.WriteCurrentAndAdvance()
 		}
 
-	.WriteLine("</expressionList>")
+	.Match("(")
+
+	.CompileExpressionList()
+
+	.Match(")")
 	}
 
 	// Closes the output file
