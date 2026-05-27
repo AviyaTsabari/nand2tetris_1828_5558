@@ -31,6 +31,39 @@ class
             }
         }
 
+// Compiles a static declaration or field declaration
+CompileClassVarDec()
+    {
+    .WriteLine("<classVarDec>")
+
+    // static | field
+    if .CurrentToken().Has?("static")
+        .Match("static")
+    else
+        .Match("field")
+
+    // type
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    // varName
+    .WriteLine(.CurrentToken())
+    .Advance()
+
+    // (, varName)*
+    while .CurrentToken().Has?(",")
+        {
+        .Match(",")
+
+        .WriteLine(.CurrentToken())
+        .Advance()
+        }
+
+    // ;
+    .Match(";")
+
+    .WriteLine("</classVarDec>")
+    }
     // Returns the current token
     CurrentToken()
         {
