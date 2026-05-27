@@ -43,11 +43,59 @@ class
         .current++
         }
 
-    // Starts compiling the class
-    CompileClass()
+    // Checks that the current token matches the expected value,
+    // writes it to the output file,
+    // and advances to the next token.
+    Match(expected)
+    {
+    token = .CurrentToken()
+
+    if token.Has?(expected)
         {
-        // Will be implemented next
+        .out.Writeline(token)
+        .Advance()
         }
+    else
+        {
+        throw "Syntax error. Expected: " $ expected $
+            ", got: " $ token
+        }
+    }
+    // Starts compiling the class
+    // Compiles a complete class
+    CompileClass()
+    {
+    .out.Writeline("<class>")
+
+    // 'class'
+    .Match("class")
+
+    // className
+    .out.Writeline(.CurrentToken())
+    .Advance()
+
+    .Match("{")
+
+    // classVarDec*
+    while .CurrentToken().Has?("static") or
+          .CurrentToken().Has?("field")
+        {
+        .CompileClassVarDec()
+        }
+
+    // subroutineDec*
+    while .CurrentToken().Has?("constructor") or
+          .CurrentToken().Has?("function") or
+          .CurrentToken().Has?("method")
+        {
+        .CompileSubroutine()
+        }
+
+    // '}'
+    .Match("}")
+
+    .out.Writeline("</class>")
+    }
 
     // Closes the output file
     Close()
