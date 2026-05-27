@@ -8,49 +8,74 @@ class
 		.tokens = Object()
 		.current = 0
 		.writeOut = out
-
+		.indent = 0
 		.LoadTokens(tokensFile)
 		}
 
-// Writes one line to the output file
+// Writes one line to the output file with indentation
 WriteLine(line)
 	{
-	.writeOut.Write(line $ "\n")
+	if line.Prefix?("</")
+		.indent--
+
+	spaces = ""
+	for (i = 0; i < .indent; i++)
+		spaces $= "  "
+
+	.writeOut.Write(spaces $ line $ "\n")
+
+	if line.Prefix?("<") and
+	   not line.Prefix?("</") and
+	   not line.Has?("</")
+		.indent++
 	}
 
 // Writes the current token to the output file
 // and moves to the next token.
 WriteCurrentAndAdvance()
 	{
-	.WriteLine(.CurrentToken())
+	.WriteLine(.tokens[.current])
 	.Advance()
 	}
 
 
 	// Reads all tokens from the XXXT.xml file
-	// and stores them in the tokens array.
-	LoadTokens(tokensFile)
+// and stores them in the tokens array.
+LoadTokens(tokensFile)
+	{
+	File(tokensFile, "r")
+	{ |f|
+	while true
 		{
-		File(tokensFile, "r")
-			{ |f|
-			for line in f
-				{
-				line = line.Trim()
+		line = f.Readline()
 
-				// Skip opening and closing tokens tags
-				if line is "<tokens>" or line is "</tokens>" or line is ""
-					continue
+		if line is false
+			break
 
-				.tokens.Add(line)
-				}
+		line = line.Trim()
+
+			// Skip opening and closing tokens tags
+			if line is "<tokens>" or line is "</tokens>" or line is ""
+				continue
+
+			.tokens.Add(line)
 			}
 		}
+	}
 
-	// Returns the current token
-	CurrentToken()
-		{
-		return .tokens[.current]
-		}
+// Returns only the token value from the XML line
+CurrentToken()
+	{
+	if .current >= .tokens.Size()
+		return ""
+
+	line = .tokens[.current]
+
+	start = line.Find(">") + 1
+	finish = line.Find("</") - 1
+
+	return line[start .. finish].Trim()
+	}
 
 	// Moves to the next token
 	Advance()
@@ -84,7 +109,6 @@ Peek()
 
 	return .tokens[.current + 1]
 	}
-
 
 	// Starts compiling the class
 	// Compiles a complete class
@@ -492,9 +516,9 @@ CompileTerm()
 			.Match("]")
 			}
 		else if next.Has?("(") or next.Has?(".")
-	       {
-	       .CompileSubroutineCall()
-	       }
+		   {
+		   .CompileSubroutineCall()
+		   }
 		else
 			{
 			.WriteCurrentAndAdvance()
