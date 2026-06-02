@@ -1,0 +1,27 @@
+JackAnalyzer
+librec_info: #(path: #(), lib_committed: "")
+class
+	{
+	CallClass(dir)
+		{
+		for fileName in Dir(dir $ "/*.jack")
+			.processFile(dir, dir $ "/" $ fileName)
+		}
+
+	processFile(dir, inputFile)
+		{
+		outputFile = .makeOutputFileName(inputFile)
+
+		text = GetFile(inputFile)
+
+		tokenizer = JackTokenizer(text)
+		tokenizer.Tokenize()
+		tokenizer.WriteXml(outputFile)
+		}
+
+	makeOutputFileName(inputFile)
+		{
+		return inputFile.BeforeLast(".jack") $ "T.xml"
+		}
+	}
+===========================================================

@@ -1,0 +1,27 @@
+JackAnalyzer_Test
+librec_info: #(path: #(), lib_committed: "")
+Test
+	{
+	Test_analyzer_square()
+		{
+		dir = "C:/nand2tetris/project4/tests/Square"
+
+		JackAnalyzer(dir)
+
+		Assert(GetFile(dir $ "/MainT.xml").Has?("<tokens>"))
+		Assert(GetFile(dir $ "/SquareT.xml").Has?("<tokens>"))
+		Assert(GetFile(dir $ "/SquareGameT.xml").Has?("<tokens>"))
+		}
+
+	Test_analyzer_array_test()
+		{
+		dir = "C:/nand2tetris/project4/tests/ArrayTest"
+
+		JackAnalyzer(dir)
+
+		Assert(GetFile(dir $ "/MainT.xml").Has?("<tokens>"))
+		Assert(GetFile(dir $ "/MainT.xml").Has?("</tokens>"))
+		Assert(GetFile(dir $ "/MainT.xml").Has?("<keyword> class </keyword>"))
+		}
+	}
+===========================================================

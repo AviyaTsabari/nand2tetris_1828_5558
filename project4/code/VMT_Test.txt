@@ -1,0 +1,50 @@
+VMT_Test
+librec_info: #(path: #(), lib_committed: "")
+Test
+	{
+	Test_BasicLoop()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\BasicLoop\\BasicLoop.vm")
+		}
+
+	Test_CorrectLabel()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\correctLabel\\correctLabel.vm")
+		}
+
+	Test_Function()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\function\\function.vm")
+		}
+	Test_Call()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\call\\call.vm")
+		}
+	Test_FibonacciSeries()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\FibonacciSeries")
+		}
+	Test_Bootstrap()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\bootstrap\\bootstrap.vm")
+		}
+	Test_NestedCall()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\NestedCall")
+		}
+	Test_FibonacciElement()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\FibonacciElement")
+		}
+	Test_StaticsTest()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\StaticsTest")
+		}
+
+	/*
+	Test_SimpleFunction()
+		{
+		VMT().Main("C:\\nand2tetris\\project2\\tests\\SimpleFunction\\SimpleFunction.vm")
+		}*/
+	}
+===========================================================

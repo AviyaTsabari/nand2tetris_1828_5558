@@ -1,0 +1,56 @@
+JackTokenizer_Test
+librec_info: #(path: #(), lib_committed: "")
+Test
+	{
+	Test_basic_tokenize()
+		{
+		code =
+			'class Main {
+				function void main() {
+					let x = 5;
+				}
+			}'
+
+		tokenizer = JackTokenizer(code)
+
+		tokenizer.Tokenize()
+
+		lines = tokenizer.ToXmlLines()
+
+		Print(lines)
+		}
+	Test_comments_and_xml_symbols()
+		{
+		code =
+			'class Main {
+				// this is a comment
+				function void main() {
+					let x = 3 < 5;
+					let y = "hello";
+					return;
+				}
+			}'
+
+		tokenizer = JackTokenizer(code)
+		tokenizer.Tokenize()
+		lines = tokenizer.ToXmlLines()
+
+		for line in lines
+			Print(line)
+
+		Assert(lines.Has?("<symbol> &lt; </symbol>"))
+		Assert(lines.Has?("<stringConstant> hello </stringConstant>"))
+		}
+	Test_write_xml_file()
+		{
+		code = 'class Main { function void main() { return; } }'
+
+		tokenizer = JackTokenizer(code)
+
+		tokenizer.Tokenize()
+
+		tokenizer.WriteXml(
+			"C:\\nand2tetris\\project4\\tests\\basic_tokenize\\testT.xml")
+		}
+	}
+===========================================================
