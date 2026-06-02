@@ -1,0 +1,32 @@
+Test
+	{
+	Test_Square_Main()
+		{
+			JackAnalizer().Main("C:\\nand2tetris\\project4\\tests\\Square\\MainT.xml")
+		}
+	Test_Square_SquareGame()
+		{
+			JackAnalizer().Main("C:\\nand2tetris\\project4\\tests\\Square\\SquareGameT.xml")
+		}
+	Test_Square_Square()
+		{
+			JackAnalizer().Main("C:\\nand2tetris\\project4\\tests\\Square\\SquareT.xml")
+		}
+	Test_ExpressionLessSquare_Main()
+		{
+			JackAnalizer().Main("C:\\nand2tetris\\project4\\tests\\ExpressionLessSquare\\MainT.xml")
+		}
+	Test_ExpressionLessSquare_SquareGame()
+		{
+			JackAnalizer().Main("C:\\nand2tetris\\project4\\tests\\ExpressionLessSquare\\SquareGameT.xml")
+		}
+	Test_ExpressionLessSquare_Square()
+		{
+			JackAnalizer().Main("C:\\nand2tetris\\project4\\tests\\ExpressionLessSquare\\SquareT.xml")
+		}
+	Test_ArrayTest_Main()
+		{
+			JackAnalizer().Main("C:\\nand2tetris\\project4\\tests\\ArrayTest\\MainT.xml")
+		}
+
+	}
