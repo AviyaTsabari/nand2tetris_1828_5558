@@ -1,3 +1,5 @@
+CompilationEngine
+librec_info: #(path: #(), lib_committed: "")
 class
 	{
 	// Constructor
@@ -560,3 +562,4 @@ CompileSubroutineCall()
 		.writeOut.Close()
 		}
 	}
+===========================================================

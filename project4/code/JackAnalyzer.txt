@@ -2,26 +2,72 @@ JackAnalyzer
 librec_info: #(path: #(), lib_committed: "")
 class
 	{
-	CallClass(dir)
+	CallClass(inputPath)
 		{
-		for fileName in Dir(dir $ "/*.jack")
-			.processFile(dir, dir $ "/" $ fileName)
+		if .isJackFile(inputPath)
+			.processJackFileFull(inputPath)
+		else if .isTokenXmlFile(inputPath)
+			.compileTokenFile(inputPath)
+		else
+			.processDirectory(inputPath)
 		}
 
-	processFile(dir, inputFile)
+	processDirectory(dir)
 		{
-		outputFile = .makeOutputFileName(inputFile)
+		for fileName in Dir(dir $ "/*.jack")
+			.processJackFileFull(dir $ "/" $ fileName)
+		}
+
+	processJackFileFull(inputFile)
+		{
+		tokenFile = .makeTokenFileName(inputFile)
 
 		text = GetFile(inputFile)
 
 		tokenizer = JackTokenizer(text)
 		tokenizer.Tokenize()
-		tokenizer.WriteXml(outputFile)
+		tokenizer.WriteXml(tokenFile)
+
+		.compileTokenFile(tokenFile)
 		}
 
-	makeOutputFileName(inputFile)
+	compileTokenFile(tokenFile)
+		{
+		outputFile = .makeParsedFileName(tokenFile)
+
+		out = File(outputFile, "w")
+
+		ce = CompilationEngine(tokenFile, out)
+		ce.CompileClass()
+		ce.Close()
+		}
+
+	isJackFile(inputFile)
+		{
+		return inputFile.AfterLast(".") is "jack"
+		}
+
+	isTokenXmlFile(inputFile)
+		{
+		if inputFile.AfterLast(".") isnt "xml"
+			return false
+
+		baseName = inputFile.BeforeLast(".xml")
+
+		if baseName.Size() is 0
+			return false
+
+		return baseName[baseName.Size() - 1] is "T"
+		}
+
+	makeTokenFileName(inputFile)
 		{
 		return inputFile.BeforeLast(".jack") $ "T.xml"
+		}
+
+	makeParsedFileName(tokenFile)
+		{
+		return tokenFile.BeforeLast("T.xml") $ ".xml"
 		}
 	}
 ===========================================================
