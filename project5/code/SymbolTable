@@ -66,4 +66,44 @@ class
 
 		return 0
 		}
+	KindOf(name)
+	{
+	row = .Find(name)
+
+	if row is false
+		return "none"
+
+	return row.kind
+	}
+
+TypeOf(name)
+	{
+	row = .Find(name)
+
+	if row is false
+		return ""
+
+	return row.type
+	}
+
+IndexOf(name)
+	{
+	row = .Find(name)
+
+	if row is false
+		return -1
+
+	return row.index
+	}
+
+Find(name)
+	{
+	if .subroutineTable.Member?(name)
+		return .subroutineTable[name]
+
+	if .classTable.Member?(name)
+		return .classTable[name]
+
+	return false
+	}
 	}
