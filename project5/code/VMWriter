@@ -1,0 +1,53 @@
+VMWriter
+class
+	{
+	New(out)
+		{
+		.out = out
+		}
+
+	WritePush(segment, index)
+		{
+		.out.Write("push " $ segment $ " " $ index $ "\n")
+		}
+
+	WritePop(segment, index)
+		{
+		.out.Write("pop " $ segment $ " " $ index $ "\n")
+		}
+
+	WriteArithmetic(command)
+		{
+		.out.Write(command $ "\n")
+		}
+
+	WriteLabel(label)
+		{
+		.out.Write("label " $ label $ "\n")
+		}
+
+	WriteGoto(label)
+		{
+		.out.Write("goto " $ label $ "\n")
+		}
+
+	WriteIf(label)
+		{
+		.out.Write("if-goto " $ label $ "\n")
+		}
+
+	WriteCall(name, nArgs)
+		{
+		.out.Write("call " $ name $ " " $ nArgs $ "\n")
+		}
+
+	WriteFunction(name, nLocals)
+		{
+		.out.Write("function " $ name $ " " $ nLocals $ "\n")
+		}
+
+	WriteReturn()
+		{
+		.out.Write("return\n")
+		}
+	}
