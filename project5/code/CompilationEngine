@@ -237,48 +237,61 @@ CompileParameterList()
 	}
 
 // Compiles the body of a subroutine
-CompileSubroutineBody()
+CompileSubroutineBody(subroutineKind)
 	{
-	.WriteLine("<subroutineBody>")
-
-	.Match("{")
+	.MatchNoWrite("{")
 
 	while .CurrentToken().Has?("var")
-		{
 		.CompileVarDec()
+
+	nLocals = .symbols.VarCount("var")
+	.vm.WriteFunction(.className $ "." $ .subroutineName, nLocals)
+
+// In a method, argument 0 holds the current object.
+// Set pointer 0 (THIS) to argument 0 so field access works correctly.
+	if subroutineKind is "method"
+		{
+		.vm.WritePush("argument", 0)
+		.vm.WritePop("pointer", 0)
+		}
+	
+// Constructor: allocate memory for the object's fields
+// and initialize THIS to the allocated address.
+	else if subroutineKind is "constructor"
+		{
+		fieldCount = .symbols.VarCount("field")
+		.vm.WritePush("constant", fieldCount)
+		.vm.WriteCall("Memory.alloc", 1)
+		.vm.WritePop("pointer", 0)
 		}
 
 	.CompileStatements()
 
-	.Match("}")
-
-	.WriteLine("</subroutineBody>")
+	.MatchNoWrite("}")
 	}
 
 	// Compiles a var declaration
 CompileVarDec()
 	{
-	.WriteLine("<varDec>")
+	.MatchNoWrite("var")
 
-	.Match("var")
+	type = .CurrentToken()
+	.Advance()
 
-	// type
-	.WriteCurrentAndAdvance()
+	name = .CurrentToken()
+	.symbols.Define(name, type, "var")
+	.Advance()
 
-	// varName
-	.WriteCurrentAndAdvance()
-
-	// (, varName)*
 	while .CurrentToken().Has?(",")
 		{
-		.Match(",")
+		.MatchNoWrite(",")
 
-		.WriteCurrentAndAdvance()
+		name = .CurrentToken()
+		.symbols.Define(name, type, "var")
+		.Advance()
 		}
 
-	.Match(";")
-
-	.WriteLine("</varDec>")
+	.MatchNoWrite(";")
 	}
 
 	// Compiles a sequence of statements
@@ -310,34 +323,21 @@ CompileStatements()
   // Compiles a let statement
 CompileLet()
 	{
-	.WriteLine("<letStatement>")
+	.MatchNoWrite("let")
 
-	// let
-	.Match("let")
+	name = .CurrentToken()
+	kind = .symbols.KindOf(name)
+	index = .symbols.IndexOf(name)
+	segment = .KindToSegment(kind)
+	.Advance()
 
-	// varName
-	.WriteCurrentAndAdvance()
+	.MatchNoWrite("=")
 
-	// ('[' expression ']')?
-	if .CurrentToken().Has?("[")
-		{
-		.Match("[")
-
-		.CompileExpression()
-
-		.Match("]")
-		}
-
-	// =
-	.Match("=")
-
-	// expression
 	.CompileExpression()
 
-	// ;
-	.Match(";")
+	.MatchNoWrite(";")
 
-	.WriteLine("</letStatement>")
+	.vm.WritePop(segment, index)
 	}
 
 // Compiles an if statement
@@ -396,34 +396,37 @@ CompileWhile()
 	}
 
 // Compiles a do statement
+// Do statements ignore the returned value.
 CompileDo()
 	{
-	.WriteLine("<doStatement>")
-
-	.Match("do")
+	.MatchNoWrite("do")
 
 	.CompileSubroutineCall()
 
-	.Match(";")
+	.MatchNoWrite(";")
 
-	.WriteLine("</doStatement>")
+	// discard return value
+	.vm.WritePop("temp", 0)
 	}
 
 // Compiles a return statement
 CompileReturn()
 	{
-	.WriteLine("<returnStatement>")
-
-	.Match("return")
+	.MatchNoWrite("return")
 
 	if not .CurrentToken().Has?(";")
 		{
 		.CompileExpression()
 		}
+	else
+		{
+		// void return
+		.vm.WritePush("constant", 0)
+		}
 
-	.Match(";")
+	.MatchNoWrite(";")
 
-	.WriteLine("</returnStatement>")
+	.vm.WriteReturn()
 	}
 
 	// Compiles an expression
@@ -551,6 +554,20 @@ CompileSubroutineCall()
 	.CompileExpressionList()
 
 	.Match(")")
+	}
+
+KindToSegment(kind)
+	{
+	if kind is "var"
+		return "local"      // local variable
+	else if kind is "argument"
+		return "argument"   // subroutine argument
+	else if kind is "static"
+		return "static"     // class-level static variable
+	else if kind is "field"
+	    return "this"     // fields are stored in the current object (THIS)
+
+	return ""
 	}
 
 	// Closes the output file
