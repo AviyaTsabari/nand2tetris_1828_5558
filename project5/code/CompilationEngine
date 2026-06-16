@@ -446,21 +446,18 @@ CompileReturn()
 	// Compiles an expression
 CompileExpression()
 	{
-	.WriteLine("<expression>")
-
 	.CompileTerm()
 
-	// (op term)*
 	while .IsOp()
 		{
-		.WriteCurrentAndAdvance()
+		op = .CurrentToken()
+		.Advance()
 
 		.CompileTerm()
+
+		.WriteOp(op)
 		}
-
-	.WriteLine("</expression>")
 	}
-
 
 
 // Compiles a possibly empty expression list
@@ -583,7 +580,27 @@ KindToSegment(kind)
 
 	return ""
 	}
-
+WriteOp(op)
+	{
+	if op is "+"
+		.vm.WriteArithmetic("add")
+	else if op is "-"
+		.vm.WriteArithmetic("sub")
+	else if op is "&amp;"
+		.vm.WriteArithmetic("and")
+	else if op is "|"
+		.vm.WriteArithmetic("or")
+	else if op is "&lt;"
+		.vm.WriteArithmetic("lt")
+	else if op is "&gt;"
+		.vm.WriteArithmetic("gt")
+	else if op is "="
+		.vm.WriteArithmetic("eq")
+	else if op is "*"
+		.vm.WriteCall("Math.multiply", 2)
+	else if op is "/"
+		.vm.WriteCall("Math.divide", 2)
+	}
 
 	// Closes the output file
 	Close()
