@@ -12,6 +12,7 @@ class
 		.LoadTokens(tokensFile)
 		.symbols = SymbolTable()
         .vm = VMWriter(out)
+        .labelCounter = 0
 		}
 
 // Writes one line to the output file with indentation
@@ -343,56 +344,69 @@ CompileLet()
 // Compiles an if statement
 CompileIf()
 	{
-	.WriteLine("<ifStatement>")
+	trueLabel = "IF_TRUE" $ .labelCounter
+	falseLabel = "IF_FALSE" $ .labelCounter
+	endLabel = "IF_END" $ .labelCounter++
 
-	.Match("if")
+	.MatchNoWrite("if")
 
-	.Match("(")
-
+	.MatchNoWrite("(")
 	.CompileExpression()
+	.MatchNoWrite(")")
 
-	.Match(")")
+	.vm.WriteIf(trueLabel)
+	.vm.WriteGoto(falseLabel)
 
-	.Match("{")
+	.vm.WriteLabel(trueLabel)
 
+	.MatchNoWrite("{")
 	.CompileStatements()
-
-	.Match("}")
+	.MatchNoWrite("}")
 
 	if .CurrentToken().Has?("else")
 		{
-		.Match("else")
+		.vm.WriteGoto(endLabel)
+		.vm.WriteLabel(falseLabel)
 
-		.Match("{")
-
+		.MatchNoWrite("else")
+		.MatchNoWrite("{")
 		.CompileStatements()
+		.MatchNoWrite("}")
 
-		.Match("}")
+		.vm.WriteLabel(endLabel)
 		}
-
-	.WriteLine("</ifStatement>")
+	else
+		{
+		.vm.WriteLabel(falseLabel)
+		}
 	}
 
-// Compiles a while statement
 CompileWhile()
 	{
-	.WriteLine("<whileStatement>")
+	startLabel = "WHILE_EXP" $ .labelCounter
+    endLabel = "WHILE_END" $ .labelCounter++
 
-	.Match("while")
+	.MatchNoWrite("while")
 
-	.Match("(")
+	.vm.WriteLabel(startLabel)
+
+	.MatchNoWrite("(")
 
 	.CompileExpression()
 
-	.Match(")")
+	.MatchNoWrite(")")
 
-	.Match("{")
+	.vm.WriteArithmetic("not")
+	.vm.WriteIf(endLabel)
+
+	.MatchNoWrite("{")
 
 	.CompileStatements()
 
-	.Match("}")
+	.MatchNoWrite("}")
 
-	.WriteLine("</whileStatement>")
+	.vm.WriteGoto(startLabel)
+	.vm.WriteLabel(endLabel)
 	}
 
 // Compiles a do statement
@@ -569,6 +583,7 @@ KindToSegment(kind)
 
 	return ""
 	}
+
 
 	// Closes the output file
 	Close()
