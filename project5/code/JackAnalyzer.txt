@@ -1,0 +1,73 @@
+JackAnalyzer
+librec_info: #(path: #(), lib_committed: "")
+class
+	{
+	CallClass(inputPath)
+		{
+		if .isJackFile(inputPath)
+			.processJackFileFull(inputPath)
+		else if .isTokenXmlFile(inputPath)
+			.compileTokenFile(inputPath)
+		else
+			.processDirectory(inputPath)
+		}
+
+	processDirectory(dir)
+		{
+		for fileName in Dir(dir $ "/*.jack")
+			.processJackFileFull(dir $ "/" $ fileName)
+		}
+
+	processJackFileFull(inputFile)
+		{
+		tokenFile = .makeTokenFileName(inputFile)
+
+		text = GetFile(inputFile)
+
+		tokenizer = JackTokenizer(text)
+		tokenizer.Tokenize()
+		tokenizer.WriteXml(tokenFile)
+
+		.compileTokenFile(tokenFile)
+		}
+
+	compileTokenFile(tokenFile)
+		{
+		outputFile = .makeParsedFileName(tokenFile)
+
+		out = File(outputFile, "w")
+
+		ce = CompilationEngine(tokenFile, out)
+		ce.CompileClass()
+		ce.Close()
+		}
+
+	isJackFile(inputFile)
+		{
+		return inputFile.AfterLast(".") is "jack"
+		}
+
+	isTokenXmlFile(inputFile)
+		{
+		if inputFile.AfterLast(".") isnt "xml"
+			return false
+
+		baseName = inputFile.BeforeLast(".xml")
+
+		if baseName.Size() is 0
+			return false
+
+		return baseName[baseName.Size() - 1] is "T"
+		}
+
+	makeTokenFileName(inputFile)
+		{
+		return inputFile.BeforeLast(".jack") $ "T.xml"
+		}
+
+	makeParsedFileName(tokenFile)
+		{
+		return tokenFile.BeforeLast("T.xml") $ ".vm"
+		}
+	}
+===========================================================

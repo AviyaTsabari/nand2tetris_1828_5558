@@ -1,0 +1,1356 @@
+class
+	{
+	// Constructor
+	// Initializes the token list, current token index,
+	// and output file.
+	New(tokensFile, out)
+		{
+		.tokens = Object()
+		.current = 0
+		.writeOut = out
+		.indent = 0
+		.LoadTokens(tokensFile)
+		.symbols = SymbolTable()
+        .vm = VMWriter(out)
+        .labelCounter = 0
+		}
+
+// Writes one line to the output file with indentation
+WriteLine(line)
+	{
+	if line.Prefix?("</")
+		.indent--
+
+	spaces = ""
+	for (i = 0; i < .indent; i++)
+		spaces $= "  "
+
+	.writeOut.Write(spaces $ line $ "\n")
+
+	if line.Prefix?("<") and
+	   not line.Prefix?("</") and
+	   not line.Has?("</")
+		.indent++
+	}
+
+// Writes the current token to the output file
+// and moves to the next token.
+WriteCurrentAndAdvance()
+	{
+	.WriteLine(.tokens[.current])
+	.Advance()
+	}
+
+
+	// Reads all tokens from the XXXT.xml file
+// and stores them in the tokens array.
+LoadTokens(tokensFile)
+	{
+	File(tokensFile, "r")
+	{ |f|
+	while true
+		{
+		line = f.Readline()
+
+		if line is false
+			break
+
+		line = line.Trim()
+
+			// Skip opening and closing tokens tags
+			if line is "<tokens>" or line is "</tokens>" or line is ""
+				continue
+
+			.tokens.Add(line)
+			}
+		}
+	}
+
+// Returns only the token value from the XML line
+CurrentToken()
+	{
+	if .current >= .tokens.Size()
+		return ""
+
+	line = .tokens[.current]
+
+	start = line.Find(">") + 1
+	finish = line.Find("</") - 1
+
+	return line[start .. finish].Trim()
+	}
+
+	// Moves to the next token
+	Advance()
+		{
+		.current++
+		}
+
+	// Checks that the current token matches the expected value,
+	// writes it to the output file,
+	// and advances to the next token.
+	Match(expected)
+	{
+	token = .CurrentToken()
+
+	if token.Has?(expected)
+		{
+		.WriteCurrentAndAdvance()
+		}
+	else
+		{
+		throw "Syntax error. Expected: " $ expected $
+			", got: " $ token
+		}
+	}
+MatchNoWrite(expected)
+	{
+	token = .CurrentToken()
+
+	if token.Has?(expected)
+		.Advance()
+	else
+		throw "Syntax error. Expected: " $ expected $
+			", got: " $ token
+	}
+
+// Returns the next token without advancing
+Peek()
+	{
+	if .current + 1 >= .tokens.Size()
+		return ""
+
+	return .tokens[.current + 1]
+	}
+
+	// Starts compiling the class
+	// Compiles a complete class
+CompileClass()
+	{
+	.symbols.StartClass()
+
+	// 'class'
+	.MatchNoWrite("class")
+
+	// className
+	.className = .CurrentToken()
+	.Advance()
+
+	.MatchNoWrite("{")
+
+	while .CurrentToken().Has?("static") or
+		  .CurrentToken().Has?("field")
+		{
+		.CompileClassVarDec()
+		}
+
+	while .CurrentToken().Has?("constructor") or
+		  .CurrentToken().Has?("function") or
+		  .CurrentToken().Has?("method")
+		{
+		.CompileSubroutine()
+		}
+
+	.MatchNoWrite("}")
+	}
+
+// Compiles a static declaration or field declaration
+	CompileClassVarDec()
+	{
+	// static | field
+	kind = .CurrentToken()
+	.Advance()
+
+	// type
+	type = .CurrentToken()
+	.Advance()
+
+	// varName
+	name = .CurrentToken()
+	.symbols.Define(name, type, kind)
+	.Advance()
+
+	// (, varName)*
+	while .CurrentToken().Has?(",")
+		{
+		.MatchNoWrite(",")
+
+		name = .CurrentToken()
+		.symbols.Define(name, type, kind)
+		.Advance()
+		}
+
+	.MatchNoWrite(";")
+	}
+
+	// Compiles a complete method, function, or constructor
+CompileSubroutine()
+	{
+	.symbols.StartSubroutine()
+
+	// constructor | function | method
+	subroutineKind = .CurrentToken()
+	.Advance()
+
+	if subroutineKind is "method"
+		.symbols.Define("this", .className, "argument")
+
+	// void | type
+	.Advance()
+
+	// subroutineName
+	.subroutineName = .CurrentToken()
+	.Advance()
+
+	.MatchNoWrite("(")
+
+	.CompileParameterList()
+
+	.MatchNoWrite(")")
+
+	.CompileSubroutineBody(subroutineKind)
+	}
+
+	// Compiles a possibly empty parameter list
+CompileParameterList()
+	{
+	if not .CurrentToken().Has?(")")
+		{
+		type = .CurrentToken()
+		.Advance()
+
+		name = .CurrentToken()
+		.symbols.Define(name, type, "argument")
+		.Advance()
+
+		while .CurrentToken().Has?(",")
+			{
+			.MatchNoWrite(",")
+
+			type = .CurrentToken()
+			.Advance()
+
+			name = .CurrentToken()
+			.symbols.Define(name, type, "argument")
+			.Advance()
+			}
+		}
+	}
+
+// Compiles the body of a subroutine
+CompileSubroutineBody(subroutineKind)
+	{
+	.MatchNoWrite("{")
+
+	while .CurrentToken().Has?("var")
+		.CompileVarDec()
+
+	nLocals = .symbols.VarCount("var")
+	.vm.WriteFunction(.className $ "." $ .subroutineName, nLocals)
+
+// In a method, argument 0 holds the current object.
+// Set pointer 0 (THIS) to argument 0 so field access works correctly.
+	if subroutineKind is "method"
+		{
+		.vm.WritePush("argument", 0)
+		.vm.WritePop("pointer", 0)
+		}
+	
+// Constructor: allocate memory for the object's fields
+// and initialize THIS to the allocated address.
+	else if subroutineKind is "constructor"
+		{
+		fieldCount = .symbols.VarCount("field")
+		.vm.WritePush("constant", fieldCount)
+		.vm.WriteCall("Memory.alloc", 1)
+		.vm.WritePop("pointer", 0)
+		}
+
+	.CompileStatements()
+
+	.MatchNoWrite("}")
+	}
+
+	// Compiles a var declaration
+CompileVarDec()
+	{
+	.MatchNoWrite("var")
+
+	type = .CurrentToken()
+	.Advance()
+
+	name = .CurrentToken()
+	.symbols.Define(name, type, "var")
+	.Advance()
+
+	while .CurrentToken().Has?(",")
+		{
+		.MatchNoWrite(",")
+
+		name = .CurrentToken()
+		.symbols.Define(name, type, "var")
+		.Advance()
+		}
+
+	.MatchNoWrite(";")
+	}
+
+	// Compiles a sequence of statements
+CompileStatements()
+	{
+	.WriteLine("<statements>")
+
+	while .CurrentToken().Has?("let") or
+		  .CurrentToken().Has?("if") or
+		  .CurrentToken().Has?("while") or
+		  .CurrentToken().Has?("do") or
+		  .CurrentToken().Has?("return")
+		{
+		if .CurrentToken().Has?("let")
+			.CompileLet()
+		else if .CurrentToken().Has?("if")
+			.CompileIf()
+		else if .CurrentToken().Has?("while")
+			.CompileWhile()
+		else if .CurrentToken().Has?("do")
+			.CompileDo()
+		else
+			.CompileReturn()
+		}
+
+	.WriteLine("</statements>")
+	}
+
+  // Compiles a let statement
+CompileLet()
+	{
+	.MatchNoWrite("let")
+
+	name = .CurrentToken()
+	kind = .symbols.KindOf(name)
+	index = .symbols.IndexOf(name)
+	segment = .KindToSegment(kind)
+	.Advance()
+
+	.MatchNoWrite("=")
+
+	.CompileExpression()
+
+	.MatchNoWrite(";")
+
+	.vm.WritePop(segment, index)
+	}
+
+// Compiles an if statement
+CompileIf()
+	{
+	trueLabel = "IF_TRUE" $ .labelCounter
+	falseLabel = "IF_FALSE" $ .labelCounter
+	endLabel = "IF_END" $ .labelCounter++
+
+	.MatchNoWrite("if")
+
+	.MatchNoWrite("(")
+	.CompileExpression()
+	.MatchNoWrite(")")
+
+	.vm.WriteIf(trueLabel)
+	.vm.WriteGoto(falseLabel)
+
+	.vm.WriteLabel(trueLabel)
+
+	.MatchNoWrite("{")
+	.CompileStatements()
+	.MatchNoWrite("}")
+
+	if .CurrentToken().Has?("else")
+		{
+		.vm.WriteGoto(endLabel)
+		.vm.WriteLabel(falseLabel)
+
+		.MatchNoWrite("else")
+		.MatchNoWrite("{")
+		.CompileStatements()
+		.MatchNoWrite("}")
+
+		.vm.WriteLabel(endLabel)
+		}
+	else
+		{
+		.vm.WriteLabel(falseLabel)
+		}
+	}
+
+CompileWhile()
+	{
+	startLabel = "WHILE_EXP" $ .labelCounter
+    endLabel = "WHILE_END" $ .labelCounter++
+
+	.MatchNoWrite("while")
+
+	.vm.WriteLabel(startLabel)
+
+	.MatchNoWrite("(")
+
+	.CompileExpression()
+
+	.MatchNoWrite(")")
+
+	.vm.WriteArithmetic("not")
+	.vm.WriteIf(endLabel)
+
+	.MatchNoWrite("{")
+
+	.CompileStatements()
+
+	.MatchNoWrite("}")
+
+	.vm.WriteGoto(startLabel)
+	.vm.WriteLabel(endLabel)
+	}
+
+// Compiles a do statement
+// Do statements ignore the returned value.
+CompileDo()
+	{
+	.MatchNoWrite("do")
+
+	.CompileSubroutineCall()
+
+	.MatchNoWrite(";")
+
+	// discard return value
+	.vm.WritePop("temp", 0)
+	}
+
+// Compiles a return statement
+CompileReturn()
+	{
+	.MatchNoWrite("return")
+
+	if not .CurrentToken().Has?(";")
+		{
+		.CompileExpression()
+		}
+	else
+		{
+		// void return
+		.vm.WritePush("constant", 0)
+		}
+
+	.MatchNoWrite(";")
+
+	.vm.WriteReturn()
+	}
+
+	// Compiles an expression
+CompileExpression()
+	{
+	.CompileTerm()
+
+	while .IsOp()
+		{
+		op = .CurrentToken()
+		.Advance()
+
+		.CompileTerm()
+
+		.WriteOp(op)
+		}
+	}
+
+
+// Compiles a possibly empty expression list
+CompileExpressionList()
+	{
+	.WriteLine("<expressionList>")
+
+	if not .CurrentToken().Has?(")")
+		{
+		.CompileExpression()
+
+		while .CurrentToken().Has?(",")
+			{
+			.Match(",")
+
+			.CompileExpression()
+			}
+		}
+
+	.WriteLine("</expressionList>")
+	}
+
+
+
+
+
+	// Checks if the current token is an operator
+IsOp()
+	{
+	token = .CurrentToken()
+
+	return token.Has?("+") or
+		   token.Has?("-") or
+		   token.Has?("*") or
+		   token.Has?("/") or
+		   token.Has?("&amp;") or
+		   token.Has?("|") or
+		   token.Has?("&lt;") or
+		   token.Has?("&gt;") or
+		   token.Has?("=")
+	}
+
+	// Compiles a term
+CompileTerm()
+	{
+	.WriteLine("<term>")
+
+	if .CurrentToken().Has?("(")
+		{
+		.Match("(")
+		.CompileExpression()
+		.Match(")")
+		}
+	else if .CurrentToken().Has?("-") or
+			.CurrentToken().Has?("~")
+		{
+		.WriteCurrentAndAdvance()
+		.CompileTerm()
+		}
+	else
+		{
+		next = .Peek()
+
+		if next.Has?("[")
+			{
+			.WriteCurrentAndAdvance()
+			.Match("[")
+			.CompileExpression()
+			.Match("]")
+			}
+		else if next.Has?("(") or next.Has?(".")
+		   {
+		   .CompileSubroutineCall()
+		   }
+		else
+			{
+			.WriteCurrentAndAdvance()
+			}
+		}
+
+
+	.WriteLine("</term>")
+	}
+
+// Compiles a subroutine call.
+// Handles both:
+// subroutineName(expressionList)
+// className.subroutineName(expressionList)
+// varName.subroutineName(expressionList)
+CompileSubroutineCall()
+	{
+	// subroutineName | className | varName
+	.WriteCurrentAndAdvance()
+
+	if .CurrentToken().Has?(".")
+		{
+		.Match(".")
+
+		// subroutineName
+		.WriteCurrentAndAdvance()
+		}
+
+	.Match("(")
+
+	.CompileExpressionList()
+
+	.Match(")")
+	}
+
+KindToSegment(kind)
+	{
+	if kind is "var"
+		return "local"      // local variable
+	else if kind is "argument"
+		return "argument"   // subroutine argument
+	else if kind is "static"
+		return "static"     // class-level static variable
+	else if kind is "field"
+	    return "this"     // fields are stored in the current object (THIS)
+
+	return ""
+	}
+WriteOp(op)
+	{
+	if op is "+"
+		.vm.WriteArithmetic("add")
+	else if op is "-"
+		.vm.WriteArithmetic("sub")
+	else if op is "&amp;"
+		.vm.WriteArithmetic("and")
+	else if op is "|"
+		.vm.WriteArithmetic("or")
+	else if op is "&lt;"
+		.vm.WriteArithmetic("lt")
+	else if op is "&gt;"
+		.vm.WriteArithmetic("gt")
+	else if op is "="
+		.vm.WriteArithmetic("eq")
+	else if op is "*"
+		.vm.WriteCall("Math.multiply", 2)
+	else if op is "/"
+		.vm.WriteCall("Math.divide", 2)
+	}
+
+	// Closes the output file
+	Close()
+		{
+		.writeOut.Close()
+		}
+	}
+CompilationEngine
+librec_info: #(path: #(), lib_committed: "")
+class
+	{
+	// Constructor
+	// Initializes the token list, current token index,
+	// and output file.
+	New(tokensFile, out)
+		{
+		.tokens = Object()
+		.current = 0
+		.writeOut = out
+		.indent = 0
+		.LoadTokens(tokensFile)
+		.symbols = SymbolTable()
+		.vm = VMWriter(out)
+		.labelCounter = 0
+		}
+
+	// Writes one line to the output file with indentation
+	WriteLine(line)
+		{
+		if line.Prefix?("</")
+			.indent--
+
+		spaces = ""
+		for (i = 0; i < .indent; i++)
+			spaces $= "  "
+
+		.writeOut.Write(spaces $ line $ "\n")
+
+		if line.Prefix?("<") and
+		   not line.Prefix?("</") and
+		   not line.Has?("</")
+			.indent++
+		}
+
+	// Writes the current token to the output file
+	// and moves to the next token.
+	WriteCurrentAndAdvance()
+		{
+		.WriteLine(.tokens[.current])
+		.Advance()
+		}
+
+
+		// Reads all tokens from the XXXT.xml file
+	// and stores them in the tokens array.
+	LoadTokens(tokensFile)
+		{
+		File(tokensFile, "r")
+		{ |f|
+		while true
+			{
+			line = f.Readline()
+
+			if line is false
+				break
+
+			line = line.Trim()
+
+				// Skip opening and closing tokens tags
+				if line is "<tokens>" or line is "</tokens>" or line is ""
+					continue
+
+				.tokens.Add(line)
+				}
+			}
+		}
+
+	// Returns only the token value from the XML line
+	CurrentToken()
+		{
+		if .current >= .tokens.Size()
+			return ""
+
+		line = .tokens[.current]
+
+		start = line.Find(">") + 1
+		finish = line.Find("</") - 1
+
+		return line[start .. finish].Trim()
+		}
+
+		// Moves to the next token
+		Advance()
+			{
+			.current++
+			}
+
+		// Checks that the current token matches the expected value,
+		// writes it to the output file,
+		// and advances to the next token.
+		Match(expected)
+		{
+		token = .CurrentToken()
+
+		if token.Has?(expected)
+			{
+			.WriteCurrentAndAdvance()
+			}
+		else
+			{
+			throw "Syntax error. Expected: " $ expected $
+				", got: " $ token
+			}
+		}
+	MatchNoWrite(expected)
+		{
+		token = .CurrentToken()
+
+		if token.Has?(expected)
+			.Advance()
+		else
+			throw "Syntax error. Expected: " $ expected $
+				", got: " $ token
+		}
+
+	// Returns the next token without advancing
+	Peek()
+		{
+		if .current + 1 >= .tokens.Size()
+			return ""
+
+		line = .tokens[.current + 1]
+
+		start = line.Find(">") + 1
+		finish = line.Find("</") - 1
+
+		return line[start .. finish].Trim()
+		}
+
+		// Starts compiling the class
+		// Compiles a complete class
+	CompileClass()
+		{
+		.symbols.StartClass()
+
+		// 'class'
+		.MatchNoWrite("class")
+
+		// className
+		.className = .CurrentToken()
+		.Advance()
+
+		.MatchNoWrite("{")
+
+		while .CurrentToken().Has?("static") or
+			  .CurrentToken().Has?("field")
+			{
+			.CompileClassVarDec()
+			}
+
+		while .CurrentToken().Has?("constructor") or
+			  .CurrentToken().Has?("function") or
+			  .CurrentToken().Has?("method")
+			{
+			.CompileSubroutine()
+			}
+
+		.MatchNoWrite("}")
+		}
+
+	// Compiles a static declaration or field declaration
+		CompileClassVarDec()
+		{
+		// static | field
+		kind = .CurrentToken()
+		.Advance()
+
+		// type
+		type = .CurrentToken()
+		.Advance()
+
+		// varName
+		name = .CurrentToken()
+		.symbols.Define(name, type, kind)
+		.Advance()
+
+		// (, varName)*
+		while .CurrentToken().Has?(",")
+			{
+			.MatchNoWrite(",")
+
+			name = .CurrentToken()
+			.symbols.Define(name, type, kind)
+			.Advance()
+			}
+
+		.MatchNoWrite(";")
+		}
+
+		// Compiles a complete method, function, or constructor
+	CompileSubroutine()
+		{
+		.symbols.StartSubroutine()
+
+		// constructor | function | method
+		subroutineKind = .CurrentToken()
+		.Advance()
+
+		if subroutineKind is "method"
+			.symbols.Define("this", .className, "argument")
+
+		// void | type
+		.Advance()
+
+		// subroutineName
+		.subroutineName = .CurrentToken()
+		.Advance()
+
+		.MatchNoWrite("(")
+
+		.CompileParameterList()
+
+		.MatchNoWrite(")")
+
+		.CompileSubroutineBody(subroutineKind)
+		}
+
+		// Compiles a possibly empty parameter list
+	CompileParameterList()
+		{
+		if not .CurrentToken().Has?(")")
+			{
+			type = .CurrentToken()
+			.Advance()
+
+			name = .CurrentToken()
+			.symbols.Define(name, type, "argument")
+			.Advance()
+
+			while .CurrentToken().Has?(",")
+				{
+				.MatchNoWrite(",")
+
+				type = .CurrentToken()
+				.Advance()
+
+				name = .CurrentToken()
+				.symbols.Define(name, type, "argument")
+				.Advance()
+				}
+			}
+		}
+
+	// Compiles the body of a subroutine
+	CompileSubroutineBody(subroutineKind)
+		{
+		.MatchNoWrite("{")
+
+		while .CurrentToken().Has?("var")
+			.CompileVarDec()
+
+		nLocals = .symbols.VarCount("var")
+		.vm.WriteFunction(.className $ "." $ .subroutineName, nLocals)
+
+	// In a method, argument 0 holds the current object.
+	// Set pointer 0 (THIS) to argument 0 so field access works correctly.
+		if subroutineKind is "method"
+			{
+			.vm.WritePush("argument", 0)
+			.vm.WritePop("pointer", 0)
+			}
+
+	// Constructor: allocate memory for the object's fields
+	// and initialize THIS to the allocated address.
+		else if subroutineKind is "constructor"
+			{
+			fieldCount = .symbols.VarCount("field")
+			.vm.WritePush("constant", fieldCount)
+			.vm.WriteCall("Memory.alloc", 1)
+			.vm.WritePop("pointer", 0)
+			}
+
+		.CompileStatements()
+
+		.MatchNoWrite("}")
+		}
+
+		// Compiles a var declaration
+	CompileVarDec()
+		{
+		.MatchNoWrite("var")
+
+		type = .CurrentToken()
+		.Advance()
+
+		name = .CurrentToken()
+		.symbols.Define(name, type, "var")
+		.Advance()
+
+		while .CurrentToken().Has?(",")
+			{
+			.MatchNoWrite(",")
+
+			name = .CurrentToken()
+			.symbols.Define(name, type, "var")
+			.Advance()
+			}
+
+		.MatchNoWrite(";")
+		}
+
+		// Compiles a sequence of statements
+	CompileStatements()
+		{
+		while .CurrentToken().Has?("let") or
+			  .CurrentToken().Has?("if") or
+			  .CurrentToken().Has?("while") or
+			  .CurrentToken().Has?("do") or
+			  .CurrentToken().Has?("return")
+			{
+			if .CurrentToken().Has?("let")
+				.CompileLet()
+			else if .CurrentToken().Has?("if")
+				.CompileIf()
+			else if .CurrentToken().Has?("while")
+				.CompileWhile()
+			else if .CurrentToken().Has?("do")
+				.CompileDo()
+			else
+				.CompileReturn()
+			}
+		}
+
+	CompileLet()
+		{
+		.MatchNoWrite("let")
+
+		name = .CurrentToken()
+		kind = .symbols.KindOf(name)
+		index = .symbols.IndexOf(name)
+		segment = .KindToSegment(kind)
+		.Advance()
+
+		isArray = false
+
+		if .CurrentToken() is "["
+			{
+			isArray = true
+
+			// push base address of array
+			.vm.WritePush(segment, index)
+
+			.MatchNoWrite("[")
+			.CompileExpression()
+			.MatchNoWrite("]")
+
+			// base + index
+			.vm.WriteArithmetic("add")
+			}
+
+		.MatchNoWrite("=")
+
+		.CompileExpression()
+
+		.MatchNoWrite(";")
+
+		if isArray
+			{
+			// stack: address, value
+			.vm.WritePop("temp", 0)
+			.vm.WritePop("pointer", 1)
+			.vm.WritePush("temp", 0)
+			.vm.WritePop("that", 0)
+			}
+		else
+			{
+			.vm.WritePop(segment, index)
+			}
+		}
+
+	// Compiles an if statement
+	CompileIf()
+		{
+		trueLabel = "IF_TRUE" $ .labelCounter
+		falseLabel = "IF_FALSE" $ .labelCounter
+		endLabel = "IF_END" $ .labelCounter++
+
+		.MatchNoWrite("if")
+
+		.MatchNoWrite("(")
+		.CompileExpression()
+		.MatchNoWrite(")")
+
+		.vm.WriteIf(trueLabel)
+		.vm.WriteGoto(falseLabel)
+
+		.vm.WriteLabel(trueLabel)
+
+		.MatchNoWrite("{")
+		.CompileStatements()
+		.MatchNoWrite("}")
+
+		if .CurrentToken().Has?("else")
+			{
+			.vm.WriteGoto(endLabel)
+			.vm.WriteLabel(falseLabel)
+
+			.MatchNoWrite("else")
+			.MatchNoWrite("{")
+			.CompileStatements()
+			.MatchNoWrite("}")
+
+			.vm.WriteLabel(endLabel)
+			}
+		else
+			{
+			.vm.WriteLabel(falseLabel)
+			}
+		}
+
+	CompileWhile()
+		{
+		startLabel = "WHILE_EXP" $ .labelCounter
+		endLabel = "WHILE_END" $ .labelCounter++
+
+		.MatchNoWrite("while")
+
+		.vm.WriteLabel(startLabel)
+
+		.MatchNoWrite("(")
+
+		.CompileExpression()
+
+		.MatchNoWrite(")")
+
+		.vm.WriteArithmetic("not")
+		.vm.WriteIf(endLabel)
+
+		.MatchNoWrite("{")
+
+		.CompileStatements()
+
+		.MatchNoWrite("}")
+
+		.vm.WriteGoto(startLabel)
+		.vm.WriteLabel(endLabel)
+		}
+
+	// Compiles a do statement
+	// Do statements ignore the returned value.
+	CompileDo()
+		{
+		.MatchNoWrite("do")
+
+		.CompileSubroutineCall()
+
+		.MatchNoWrite(";")
+
+		// discard return value
+		.vm.WritePop("temp", 0)
+		}
+
+	// Compiles a return statement
+	CompileReturn()
+		{
+		.MatchNoWrite("return")
+
+		if not .CurrentToken().Has?(";")
+			{
+			.CompileExpression()
+			}
+		else
+			{
+			// void return
+			.vm.WritePush("constant", 0)
+			}
+
+		.MatchNoWrite(";")
+
+		.vm.WriteReturn()
+		}
+
+	// Compiles an expression
+	CompileExpression()
+		{
+		.CompileTerm()
+
+		while .IsOp()
+			{
+			op = .CurrentToken()
+			.Advance()
+
+			.CompileTerm()
+
+			.WriteOp(op)
+			}
+		}
+
+
+	CompileExpressionList()
+		{
+		nArgs = 0
+
+		if not .CurrentToken().Has?(")")
+			{
+			.CompileExpression()
+			nArgs++
+
+			while .CurrentToken().Has?(",")
+				{
+				.MatchNoWrite(",")
+
+				.CompileExpression()
+				nArgs++
+				}
+			}
+
+		return nArgs
+		}
+
+
+	// Checks if the current token is an operator
+	IsOp()
+		{
+		token = .CurrentToken()
+
+		return token.Has?("+") or
+			   token.Has?("-") or
+			   token.Has?("*") or
+			   token.Has?("/") or
+			   token.Has?("&amp;") or
+			   token.Has?("|") or
+			   token.Has?("&lt;") or
+			   token.Has?("&gt;") or
+			   token.Has?("=")
+		}
+
+	// Compiles a term
+	CompileTerm()
+		{
+		token = .CurrentToken()
+		next = .Peek()
+
+		// (expression)
+		if token is "("
+			{
+			.MatchNoWrite("(")
+			.CompileExpression()
+			.MatchNoWrite(")")
+			return
+			}
+
+		// unaryOp term: -x or ~x
+		if token is "-" or token is "~"
+			{
+			op = token
+			.Advance()
+
+			.CompileTerm()
+
+			if op is "-"
+				.vm.WriteArithmetic("neg")
+			else
+				.vm.WriteArithmetic("not")
+
+			return
+			}
+
+		// subroutine call: foo(...) or obj.foo(...)
+		if next is "(" or next is "."
+			{
+			.CompileSubroutineCall()
+			return
+			}
+
+		// array access: arr[i]
+		if next.Has?("[")
+			{
+			name = token
+			.Advance()
+
+			// push arr base address
+			.PushVariable(name)
+
+			.MatchNoWrite("[")
+			.CompileExpression()
+			.MatchNoWrite("]")
+
+			// arr + i
+			.vm.WriteArithmetic("add")
+
+			// THAT = arr+i
+			.vm.WritePop("pointer", 1)
+
+			// push *(arr+i)
+			.vm.WritePush("that", 0)
+
+			return
+			}
+
+		// integer constant
+		if token.Number?()
+			{
+			.vm.WritePush("constant", Number(token))
+			.Advance()
+			return
+			}
+
+		// keyword constants
+		if token is "true"
+			{
+			.vm.WritePush("constant", 0)
+			.vm.WriteArithmetic("not")
+			.Advance()
+			return
+			}
+
+		if token is "false" or token is "null"
+			{
+			.vm.WritePush("constant", 0)
+			.Advance()
+			return
+			}
+
+		if token is "this"
+			{
+			.vm.WritePush("pointer", 0)
+			.Advance()
+			return
+			}
+		// string constant
+		if .tokens[.current].Has?("<stringConstant>")
+			{
+			str = token
+			.vm.WritePush("constant", str.Size())
+			.vm.WriteCall("String.new", 1)
+
+			for ch in str
+				{
+				.vm.WritePush("constant", ch.Asc())
+				.vm.WriteCall("String.appendChar", 2)
+				}
+
+			.Advance()
+			return
+			}
+		// regular variable
+		.PushVariable(token)
+		.Advance()
+		}
+
+	CompileSubroutineCall()
+		{
+		name = .CurrentToken()
+		.Advance()
+
+		nArgs = 0
+
+		if .CurrentToken() is "."
+			{
+			.MatchNoWrite(".")
+
+			subroutineName = .CurrentToken()
+			.Advance()
+
+			kind = .symbols.KindOf(name)
+			segment = .KindToSegment(kind)
+
+			if segment is ""
+				{
+				// Class.function(...)
+				fullName = name $ "." $ subroutineName
+				}
+			else
+				{
+				// obj.method(...)
+				index = .symbols.IndexOf(name)
+				.vm.WritePush(segment, index)
+				nArgs++
+
+				className = .symbols.TypeOf(name)
+				fullName = className $ "." $ subroutineName
+				}
+			}
+		else
+			{
+			// method(...)
+			.vm.WritePush("pointer", 0)
+			nArgs++
+			fullName = .className $ "." $ name
+			}
+
+		.MatchNoWrite("(")
+		nArgs += .CompileExpressionList()
+		.MatchNoWrite(")")
+
+		.vm.WriteCall(fullName, nArgs)
+		}
+
+	PushVariable(name)
+		{
+		kind = .symbols.KindOf(name)
+		index = .symbols.IndexOf(name)
+		segment = .KindToSegment(kind)
+
+		if segment is ""
+			throw "Unknown variable: " $ name
+
+		.vm.WritePush(segment, index)
+		}
+
+	KindToSegment(kind)
+		{
+		if kind is "var"
+			return "local"      // local variable
+		else if kind is "argument"
+			return "argument"   // subroutine argument
+		else if kind is "static"
+			return "static"     // class-level static variable
+		else if kind is "field"
+			return "this"     // fields are stored in the current object (THIS)
+
+		return ""
+		}
+	WriteOp(op)
+		{
+		if op is "+"
+			.vm.WriteArithmetic("add")
+		else if op is "-"
+			.vm.WriteArithmetic("sub")
+		else if op is "&amp;"
+			.vm.WriteArithmetic("and")
+		else if op is "|"
+			.vm.WriteArithmetic("or")
+		else if op is "&lt;"
+			.vm.WriteArithmetic("lt")
+		else if op is "&gt;"
+			.vm.WriteArithmetic("gt")
+		else if op is "="
+			.vm.WriteArithmetic("eq")
+		else if op is "*"
+			.vm.WriteCall("Math.multiply", 2)
+		else if op is "/"
+			.vm.WriteCall("Math.divide", 2)
+		}
+
+	// Closes the output file
+	Close()
+		{
+		.writeOut.Close()
+		}
+	}
+===========================================================

@@ -1,0 +1,42 @@
+JackAnalyzer_Test
+librec_info: #(path: #(), lib_committed: "")
+Test
+	{
+	Test_seven()
+		{
+		dir = "C:/nand2tetris/project5/tests/Seven"
+
+		JackAnalyzer(dir)
+		}
+	Test_convert_to_bin()
+		{
+		dir = "C:/nand2tetris/project5/tests/ConvertToBin"
+
+		JackAnalyzer(dir)
+		}
+	Test_square()
+		{
+		dir = "C:/nand2tetris/project5/tests/Square"
+
+		JackAnalyzer(dir)
+		}
+	Test_average()
+		{
+		dir = "C:/nand2tetris/project5/tests/Average"
+
+		JackAnalyzer(dir)
+		}
+	Test_pong()
+		{
+		dir = "C:/nand2tetris/project5/tests/Pong"
+
+		JackAnalyzer(dir)
+		}
+	Test_complex_arrays()
+		{
+		dir = "C:/nand2tetris/project5/tests/ComplexArrays"
+
+		JackAnalyzer(dir)
+		}
+	}
+===========================================================

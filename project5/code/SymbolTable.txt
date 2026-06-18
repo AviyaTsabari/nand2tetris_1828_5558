@@ -1,0 +1,221 @@
+class
+	{
+	New()
+		{
+		.StartClass()
+		}
+
+	StartClass()
+		{
+		.classTable = Object()
+		.staticCount = 0
+		.fieldCount = 0
+
+		.StartSubroutine()
+		}
+
+	StartSubroutine()
+		{
+		.subroutineTable = Object()
+		.argumentCount = 0
+		.varCount = 0
+		}
+
+	Define(name, type, kind)
+		{
+		index = .VarCount(kind)
+
+		row = Object(
+			name: name,
+			type: type,
+			kind: kind,
+			index: index)
+
+		if kind is "static"
+			{
+			.classTable[name] = row
+			.staticCount++
+			}
+		else if kind is "field"
+			{
+			.classTable[name] = row
+			.fieldCount++
+			}
+		else if kind is "argument"
+			{
+			.subroutineTable[name] = row
+			.argumentCount++
+			}
+		else if kind is "var"
+			{
+			.subroutineTable[name] = row
+			.varCount++
+			}
+		}
+
+	VarCount(kind)
+		{
+		if kind is "static"
+			return .staticCount
+		else if kind is "field"
+			return .fieldCount
+		else if kind is "argument"
+			return .argumentCount
+		else if kind is "var"
+			return .varCount
+
+		return 0
+		}
+	KindOf(name)
+	{
+	row = .Find(name)
+
+	if row is false
+		return "none"
+
+	return row.kind
+	}
+
+TypeOf(name)
+	{
+	row = .Find(name)
+
+	if row is false
+		return ""
+
+	return row.type
+	}
+
+IndexOf(name)
+	{
+	row = .Find(name)
+
+	if row is false
+		return -1
+
+	return row.index
+	}
+
+Find(name)
+	{
+	if .subroutineTable.Member?(name)
+		return .subroutineTable[name]
+
+	if .classTable.Member?(name)
+		return .classTable[name]
+
+	return false
+	}
+	}
+SymbolTable
+librec_info: #(path: #(), lib_committed: "")
+class
+	{
+	New()
+		{
+		.StartClass()
+		}
+
+	StartClass()
+		{
+		.classTable = Object()
+		.staticCount = 0
+		.fieldCount = 0
+
+		.StartSubroutine()
+		}
+
+	StartSubroutine()
+		{
+		.subroutineTable = Object()
+		.argumentCount = 0
+		.varCount = 0
+		}
+
+	Define(name, type, kind)
+		{
+		index = .VarCount(kind)
+
+		row = Object(
+			name: name,
+			type: type,
+			kind: kind,
+			index: index)
+
+		if kind is "static"
+			{
+			.classTable[name] = row
+			.staticCount++
+			}
+		else if kind is "field"
+			{
+			.classTable[name] = row
+			.fieldCount++
+			}
+		else if kind is "argument"
+			{
+			.subroutineTable[name] = row
+			.argumentCount++
+			}
+		else if kind is "var"
+			{
+			.subroutineTable[name] = row
+			.varCount++
+			}
+		}
+
+	VarCount(kind)
+		{
+		if kind is "static"
+			return .staticCount
+		else if kind is "field"
+			return .fieldCount
+		else if kind is "argument"
+			return .argumentCount
+		else if kind is "var"
+			return .varCount
+
+		return 0
+		}
+	KindOf(name)
+	{
+	row = .Find(name)
+
+	if row is false
+		return "none"
+
+	return row.kind
+	}
+
+TypeOf(name)
+	{
+	row = .Find(name)
+
+	if row is false
+		return ""
+
+	return row.type
+	}
+
+IndexOf(name)
+	{
+	row = .Find(name)
+
+	if row is false
+		return -1
+
+	return row.index
+	}
+
+Find(name)
+	{
+	if .subroutineTable.Member?(name)
+		return .subroutineTable[name]
+
+	if .classTable.Member?(name)
+		return .classTable[name]
+
+	return false
+	}
+	}
+===========================================================
